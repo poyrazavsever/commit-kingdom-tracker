@@ -32,6 +32,7 @@ Upstream: wakatime/wakatime-cli at `bac8eba3b7f10f0a4c23dcc7609277b6be406277`. E
 - Default API: `https://api.tudidaily.com/api/tracker/v1`; config file `~/.tudi.cfg` (a WakaTime setup on the same computer is left alone).
 - `pkg/heartbeat/tudi_privacy.go`: runs on every heartbeat after the upstream sanitization, whatever the config says. It removes the file name (keeps the extension), branch, dependencies, line numbers, AI session id and prompt length, and hashes the project name with a per-computer salt (`~/.tudi-salt`).
 - `cmd/link`: `--link CODE` trades a code from the app for a device key.
+- `pkg/ai/tudi_lookback.go`: AI tool logs are read from the moment the computer is linked and never more than 24 hours back. Upstream starts a first sync in February 2025 and reads every AI session on the computer; on a busy machine that took over 8 minutes, now the first heartbeat after linking takes about a second.
 
 AI line attribution works as upstream does: the CLI reads the local logs of AI coding tools (Claude Code, Copilot, Cursor…) on your computer to count AI-written lines. Those logs never leave your computer; only the line counts do. `--sync-ai-disable` turns it off.
 

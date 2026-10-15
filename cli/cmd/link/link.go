@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wakatime/wakatime-cli/pkg/ai"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/exitcode"
 	"github.com/wakatime/wakatime-cli/pkg/ini"
@@ -61,6 +62,11 @@ func Run(ctx context.Context, v *viper.Viper) (int, error) {
 
 	if err := w.Write(ctx, "settings", values); err != nil {
 		return exitcode.ErrConfigFileParse, fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	// AI logs are read from now on: nothing from before the link leaves the computer.
+	if err := ai.UpdateLastParsedAt(ctx, v, time.Now()); err != nil {
+		fmt.Fprintln(os.Stderr, "warning: could not store the AI log start:", err)
 	}
 
 	fmt.Println("Linked. Tudi will count your coding from now on.")

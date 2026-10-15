@@ -210,6 +210,9 @@ func WithAISync(config Config) heartbeat.HandleOption {
 				return next(ctx, hh)
 			}
 
+			// tudi-tracker: read at most the last day of AI logs (tudi_lookback.go).
+			lastParsedAt = tudiCutoff(lastParsedAt, time.Now())
+
 			userAgents := entityUserAgents(hh)
 
 			heartbeats, err := parseAIHeartbeats(ctx, lastParsedAt, userAgents, config)
