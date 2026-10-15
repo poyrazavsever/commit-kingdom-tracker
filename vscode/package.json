@@ -1,0 +1,36 @@
+{
+  "name": "tudi-tracker",
+  "displayName": "Tudi Tracker",
+  "description": "Counts your coding for Tudi Daily, the RPG where your code levels up your character. Sends only time, language and line counts.",
+  "version": "0.1.0",
+  "publisher": "tudidaily",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/poyrazavsever/tudi-tracker" },
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "keywords": ["time tracking", "productivity", "gamification", "rpg"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "tudi.link", "title": "Tudi: Link this computer" },
+      { "command": "tudi.today", "title": "Tudi: Show today's coding" }
+    ],
+    "configuration": {
+      "title": "Tudi Tracker",
+      "properties": {
+        "tudi.cliPath": { "type": "string", "default": "", "description": "Path to tudi-cli. Empty: ~/.tudi/tudi-cli, then PATH." },
+        "tudi.apiUrl": { "type": "string", "default": "", "description": "API url for development; empty uses Tudi Daily." }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "tsc -p . && node --test out/test/gate.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.6",
+    "@types/vscode": "1.85.0",
+    "typescript": "5.9.3"
+  }
+}
