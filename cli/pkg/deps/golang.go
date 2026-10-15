@@ -1,0 +1,99 @@
+package deps
+
+import (
+	"context"
+	"fmt"
+	"regexp"
+	"strings"
+
+	"github.com/wakatime/wakatime-cli/pkg/file"
+
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
+)
+
+var goExcludeRegex = regexp.MustCompile(`^"fmt"$`)
+
+// StateGo is a token parsing state.
+type StateGo int
+
+const (
+	// StateGoUnknown represents a unknown token parsing state.
+	StateGoUnknown StateGo = iota
+	// StateGoImport means we are in import section during token parsing.
+	StateGoImport
+)
+
+// ParserGo is a dependency parser for the go programming language.
+// It is not thread safe.
+type ParserGo struct {
+	State  StateGo
+	Output []string
+}
+
+// Parse parses dependencies from Golang file content using the chroma Golang lexer.
+func (p *ParserGo) Parse(ctx context.Context, filepath string) ([]string, error) {
+	head, err := file.ReadHead(ctx, filepath, 0)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read: %s", err)
+	}
+
+	p.init()
+	defer p.init()
+
+	iter, err := lexers.Go.Tokenise(nil, string(head))
+	if err != nil {
+		return nil, fmt.Errorf("failed to tokenize file content: %s", err)
+	}
+
+	for _, token := range iter.Tokens() {
+		p.processToken(token)
+	}
+
+	return p.Output, nil
+}
+
+func (p *ParserGo) append(dep string) {
+	if goExcludeRegex.MatchString(dep) {
+		return
+	}
+
+	p.Output = append(p.Output, strings.Trim(dep, `" `))
+}
+
+func (p *ParserGo) init() {
+	p.State = StateGoUnknown
+	p.Output = nil
+}
+
+func (p *ParserGo) processToken(token chroma.Token) {
+	switch token.Type {
+	case chroma.KeywordDeclaration:
+		p.State = StateGoUnknown
+	case chroma.KeywordNamespace:
+		p.processKeywordNamespace(token.Value)
+	case chroma.LiteralString:
+		p.processLiteralString(token.Value)
+	case chroma.NameFunction:
+		p.processNameFunction()
+	}
+}
+
+func (p *ParserGo) processKeywordNamespace(value string) {
+	switch value {
+	case "import":
+		p.State = StateGoImport
+	default:
+		p.State = StateGoUnknown
+	}
+}
+
+func (p *ParserGo) processLiteralString(value string) {
+	if p.State == StateGoImport {
+		p.append(value)
+	}
+}
+
+func (p *ParserGo) processNameFunction() {
+	p.State = StateGoUnknown
+}

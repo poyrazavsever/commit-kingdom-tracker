@@ -1,0 +1,1361 @@
+package ai
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"io"
+	"maps"
+	"math"
+	"os"
+	"path/filepath"
+	"runtime/debug"
+	"strings"
+	"time"
+	"unicode/utf8"
+
+	"github.com/spf13/viper"
+	"github.com/wakatime/wakatime-cli/pkg/api"
+	"github.com/wakatime/wakatime-cli/pkg/diagnostic"
+	"github.com/wakatime/wakatime-cli/pkg/file"
+	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/ini"
+	"github.com/wakatime/wakatime-cli/pkg/log"
+	"github.com/wakatime/wakatime-cli/pkg/params"
+	"github.com/wakatime/wakatime-cli/pkg/regex"
+	"github.com/wakatime/wakatime-cli/pkg/vipertools"
+)
+
+// Config contains filtering configurations.
+type Config struct {
+	SyncDisabled bool
+	Exclude      []regex.Regex
+	Plugin       string
+	Project      params.ProjectParams
+	Sanitize     params.SanitizeParams
+	V            *viper.Viper
+}
+
+// ProjectInfo contains --project, --alternate-project, and --project-folder cli args.
+type ProjectInfo struct {
+	Alternate           string
+	Override            string
+	ProjectPathOverride string
+}
+
+// ParserConfig contains the arguments for each Parser implementation.
+type ParserConfig struct {
+	After             time.Time
+	FallbackUserAgent string
+	UserAgents        map[string]string
+	ProjectInfo       ProjectInfo
+	checkpoint        *parserCheckpoint
+}
+
+const maxTranscriptLineSize = 10 * 1024 * 1024
+
+const (
+	// UnknownParser is the parser ID used when not detected.
+	UnknownParser int = iota
+	// ClaudeParser is the parser ID for Claude Code.
+	ClaudeParser
+	// CodexParser is the parser ID for Codex.
+	CodexParser
+	// ContinueParser is the parser ID for Continue.
+	ContinueParser
+	// CodyParser is the parser ID for Cody by Sourcegraph.
+	CodyParser
+	// RooParser is the parser ID for Roo Code.
+	RooParser
+	// OpenCodeParser is the parser ID for OpenCode.
+	OpenCodeParser
+	// CopilotParser is the parser ID for GitHub Copilot Chat.
+	CopilotParser
+	// CursorParser is the parser ID for Cursor.
+	CursorParser
+	// WindsurfParser is the parser ID for Windsurf.
+	WindsurfParser
+	// QoderParser is the parser ID for Qoder.
+	QoderParser
+	// KiroParser is the parser ID for Kiro.
+	KiroParser
+	// ClineParser is the parser ID for Cline.
+	ClineParser
+	// GeminiParser is the parser ID for Gemini.
+	GeminiParser
+	// QwenCodeParser is the parser ID for Qwen Code.
+	QwenCodeParser
+	// PiParser is the parser ID for Pi.
+	PiParser
+	// GooseParser is the parser ID for Goose.
+	GooseParser
+	// AmpParser is the parser ID for Amp.
+	AmpParser
+	// GrokBuildParser is the parser ID for Grok Build.
+	GrokBuildParser
+	// ClineCLIParser is the parser ID for Cline CLI.
+	ClineCLIParser
+	// CodebuffParser is the parser ID for Codebuff.
+	CodebuffParser
+	// CodeWhaleParser is the parser ID for CodeWhale.
+	CodeWhaleParser
+	// CrushParser is the parser ID for Crush.
+	CrushParser
+	// CursorAgentParser is the parser ID for Cursor Agent.
+	CursorAgentParser
+	// DevinParser is the parser ID for Devin.
+	DevinParser
+	// DroidParser is the parser ID for Droid.
+	DroidParser
+	// ForgeParser is the parser ID for Forge.
+	ForgeParser
+	// HermesParser is the parser ID for Hermes Agent.
+	HermesParser
+	// IBMBobParser is the parser ID for IBM Bob.
+	IBMBobParser
+	// KiloCodeParser is the parser ID for KiloCode.
+	KiloCodeParser
+	// KimiParser is the parser ID for Kimi.
+	KimiParser
+	// KimiCodeParser is the parser ID for Kimi Code.
+	KimiCodeParser
+	// LingTaiTUIParser is the parser ID for LingTai TUI.
+	LingTaiTUIParser
+	// MistralVibeParser is the parser ID for Mistral Vibe.
+	MistralVibeParser
+	// MuxParser is the parser ID for Mux.
+	MuxParser
+	// OMPParser is the parser ID for OMP.
+	OMPParser
+	// OpenClawParser is the parser ID for OpenClaw.
+	OpenClawParser
+	// OpenDesignParser is the parser ID for Open Design.
+	OpenDesignParser
+	// QuickDeskParser is the parser ID for Quick Desktop.
+	QuickDeskParser
+	// WarpParser is the parser ID for Warp.
+	WarpParser
+	// ZCodeParser is the parser ID for ZCode.
+	ZCodeParser
+	// ZedParser is the parser ID for Zed.
+	ZedParser
+	// ZerostackParser is the parser ID for Zerostack.
+	ZerostackParser
+	// DeepSeekParser is the parser ID for DeepSeek Harness.
+	DeepSeekParser
+	// CodeBuddyCodeParser is the parser ID for Tencent CodeBuddy Code.
+	CodeBuddyCodeParser
+	// OpenClaudeParser identifies OpenClaude transcripts.
+	OpenClaudeParser
+	// GrokBotParser identifies Grok Bot desktop activity.
+	GrokBotParser
+)
+
+type (
+	// Parser is a common interface for AI.
+	Parser interface {
+		Parse(context.Context) (Heartbeats, error)
+		Name() string
+	}
+
+	// Heartbeats contains the parsed ai heartbeats from Parse().
+	Heartbeats []heartbeat.Heartbeat
+)
+
+type aiPanicReport struct {
+	Logs       string
+	ParserName string
+	Recovered  any
+	Stack      string
+}
+
+// WithAISync initializes and returns a heartbeat handle option, which
+// can be used in a heartbeat processing pipeline to add heartbeats
+// from AI tool transcript logs, and modify existing heartbeats to
+// use the 'AI Coding' category when necessary.
+func WithAISync(config Config) heartbeat.HandleOption {
+	return func(next heartbeat.Handle) heartbeat.Handle {
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			logger := log.Extract(ctx)
+			// logger.Debugln("execute WithAISync")
+
+			if config.SyncDisabled {
+				return next(ctx, hh)
+			}
+
+			lock, err := AcquireSyncLock(ctx, config.V, SyncLockTimeout)
+			if err != nil {
+				if IsSyncLockBusy(err) {
+					logger.Debugln("skipping ai sync because another wakatime-cli process is already syncing ai activity")
+				} else {
+					logger.Warnf("skipping ai sync because failed to acquire ai sync lock: %s", err)
+				}
+
+				return next(ctx, hh)
+			}
+
+			releaseLock := func() {
+				if lock != nil {
+					lock.Release()
+					lock = nil
+				}
+			}
+			defer releaseLock()
+
+			lastParsedAt, err := getSyncLastParsedAt(ctx, config.V)
+			if err != nil {
+				logger.Debugf("failed ai last parsed: %s", err)
+				releaseLock()
+
+				return next(ctx, hh)
+			}
+
+			userAgents := entityUserAgents(hh)
+
+			heartbeats, err := parseAIHeartbeats(ctx, lastParsedAt, userAgents, config)
+			if err != nil {
+				logger.Errorf("failed to parse ai heartbeats: %s", err)
+				releaseLock()
+
+				return next(ctx, hh)
+			}
+
+			if len(heartbeats) == 0 {
+				releaseLock()
+				return next(ctx, hh)
+			}
+
+			_, maxAIHeartbeatTime := minMaxAIHeartbeatTimes(heartbeats)
+
+			parsedAt := heartbeatTime(maxAIHeartbeatTime)
+			if parsedAt.Before(lastParsedAt) {
+				parsedAt = lastParsedAt
+			}
+
+			if err := UpdateLastParsedAt(ctx, config.V, parsedAt); err != nil {
+				log.Extract(ctx).Warnf("failed to update ai_logs_last_parsed_at: %s", err)
+			}
+
+			releaseLock()
+
+			heartbeats = replaceAppHeartbeats(heartbeats)
+
+			exclusions := newEntityExclusions(config)
+
+			heartbeats, err = exclusions.filter(ctx, heartbeats)
+			if err != nil {
+				return nil, err
+			}
+
+			hh, err = exclusions.filter(ctx, hh)
+			if err != nil {
+				return nil, err
+			}
+
+			if len(heartbeats) == 0 {
+				return next(ctx, hh)
+			}
+
+			minAIHeartbeatTime, maxAIHeartbeatTime := minMaxAIHeartbeatTimes(heartbeats)
+			heartbeats, firstHumanEdit := preserveHumanAttributes(heartbeats, hh, config, maxAIHeartbeatTime)
+
+			entities := entityToTimeMap(heartbeats)
+
+			// Add back Human heartbeats unless they look like duplicate AI heartbeats
+			for _, h := range hh {
+				excluded, err := exclusions.excludes(ctx, h)
+				if err != nil {
+					return nil, err
+				}
+
+				if excluded {
+					heartbeats = append(heartbeats, h)
+					continue
+				}
+
+				if sameEntityAIHeartbeatWithinWindow(h, entities, 5) && (firstHumanEdit == nil || h.Time < *firstHumanEdit) {
+					continue
+				}
+
+				inRange := func(windowMinutes float64) bool {
+					const secondsPerMinute = 60.0
+
+					windowSeconds := windowMinutes * secondsPerMinute
+
+					return h.Time > minAIHeartbeatTime-windowSeconds && h.Time < maxAIHeartbeatTime+windowSeconds
+				}
+
+				if (inRange(2) && (h.HumanLineChanges == nil || *h.HumanLineChanges == 0)) ||
+					((firstHumanEdit == nil || h.Time < *firstHumanEdit) && inRange(30)) {
+					h.Category = "ai coding"
+				}
+
+				// add back this human heartbeat
+				heartbeats = append(heartbeats, h)
+			}
+
+			return next(ctx, heartbeats)
+		}
+	}
+}
+
+func parseAIHeartbeats(
+	ctx context.Context,
+	after time.Time,
+	userAgents map[string]string,
+	config Config,
+) (Heartbeats, error) {
+	ctx = aiSQLiteBudgetContext(ctx)
+	ctx = context.WithValue(ctx, wslHomesKey{}, wslHomes(ctx))
+	logger := log.Extract(ctx)
+
+	logs, resetLogs := captureAIParsingLogs(ctx)
+	defer resetLogs()
+
+	checkpoints, err := loadSyncCheckpoints(ctx, config.V, after)
+	if err != nil {
+		return nil, err
+	}
+
+	tracked := make(map[string]bool)
+
+	parserConfig := func(name string) ParserConfig {
+		state := checkpoints.parser(name, after)
+		tracked[name] = true
+
+		return ParserConfig{
+			After: state.discoveryAfter(), UserAgents: userAgents, FallbackUserAgent: config.Plugin,
+			checkpoint: state,
+		}
+	}
+
+	// Parsers reading SQLite databases do not take part in checkpoints. They keep
+	// their own per-database cursors and use the global cutoff, which keeps row
+	// hashes out of the checkpoint file that is loaded and rewritten on every sync.
+	sqliteConfig := ParserConfig{After: after, UserAgents: userAgents, FallbackUserAgent: config.Plugin}
+
+	parsers := []Parser{
+		OpenClaude(parserConfig((OpenClaude{}).Name())),
+		GrokBot(parserConfig((GrokBot{}).Name())),
+		Claude(parserConfig((Claude{}).Name())),
+		Codex(parserConfig((Codex{}).Name())),
+		DeepSeek(parserConfig((DeepSeek{}).Name())),
+		CodeBuddyCode(parserConfig((CodeBuddyCode{}).Name())),
+		GrokBuild(parserConfig((GrokBuild{}).Name())),
+		Amp(parserConfig((Amp{}).Name())),
+		Continue(parserConfig((Continue{}).Name())),
+		Cody(sqliteConfig),
+		RooCode(parserConfig((RooCode{}).Name())),
+		newCheckpointOpenCode(sqliteConfig),
+		Copilot(sqliteConfig),
+		Cursor(sqliteConfig),
+		Windsurf(sqliteConfig),
+		Qoder(sqliteConfig),
+		Kiro(parserConfig((Kiro{}).Name())),
+		Cline(parserConfig((Cline{}).Name())),
+		Gemini(sqliteConfig),
+		QwenCode(parserConfig((QwenCode{}).Name())),
+		Pi(parserConfig((Pi{}).Name())),
+		Goose(sqliteConfig),
+		ClineCLI(parserConfig((ClineCLI{}).Name())),
+		Codebuff(parserConfig((Codebuff{}).Name())),
+		CodeWhale(parserConfig((CodeWhale{}).Name())),
+		Crush(sqliteConfig),
+		CursorAgent(sqliteConfig),
+		Devin(parserConfig((Devin{}).Name())),
+		Droid(parserConfig((Droid{}).Name())),
+		Forge(sqliteConfig),
+		Hermes(sqliteConfig),
+		IBMBob(parserConfig((IBMBob{}).Name())),
+		KiloCode(sqliteConfig),
+		Kimi(parserConfig((Kimi{}).Name())),
+		KimiCode(parserConfig((KimiCode{}).Name())),
+		LingTaiTUI(parserConfig((LingTaiTUI{}).Name())),
+		MistralVibe(parserConfig((MistralVibe{}).Name())),
+		Mux(parserConfig((Mux{}).Name())),
+		OMP(parserConfig((OMP{}).Name())),
+		OpenClaw(parserConfig((OpenClaw{}).Name())),
+		OpenDesign(parserConfig((OpenDesign{}).Name())),
+		QuickDesk(sqliteConfig),
+		Warp(sqliteConfig),
+		ZCode(sqliteConfig),
+		Zed(sqliteConfig),
+		Zerostack(parserConfig((Zerostack{}).Name())),
+	}
+
+	var aiHeartbeats Heartbeats
+
+	for _, p := range parsers {
+		logger.Debugf("execute %s", p.Name())
+
+		var before *parserCheckpoint
+		if tracked[p.Name()] {
+			before = checkpoints.Parsers[p.Name()].clone()
+		}
+
+		heartbeats, err := parseHeartbeats(ctx, p, func(report aiPanicReport) {
+			if logger.IsVerboseEnabled() {
+				report.Logs = logs.String()
+			}
+
+			if diagErr := sendAIPanicDiagnostics(ctx, config.V, report); diagErr != nil {
+				logger.Warnf("failed to send ai parser panic diagnostics: %s", diagErr)
+			}
+		})
+		if err != nil {
+			logger.Errorf("unexpected error occurred at %q: %s", p.Name(), err)
+
+			if before != nil {
+				checkpoints.Parsers[p.Name()] = before
+			}
+
+			continue
+		}
+
+		if tracked[p.Name()] {
+			heartbeats = checkpoints.Parsers[p.Name()].filter(heartbeats)
+		}
+
+		aiHeartbeats = append(aiHeartbeats, heartbeats...)
+	}
+
+	// Drop state left by parsers that no longer use checkpoints, such as sqlite
+	// cursors stored by earlier builds.
+	maps.DeleteFunc(checkpoints.Parsers, func(name string, _ *parserCheckpoint) bool { return !tracked[name] })
+
+	checkpoints.PreviousGlobal = after
+
+	// getLastParsedAt clamps a future watermark to now, so a future-dated record
+	// (clock skew, wrong timezone) must not push Global past now: the next run
+	// would see after < Global and mistake it for a rewind, wiping every cutoff.
+	now := time.Now()
+
+	for _, h := range aiHeartbeats {
+		if stamp := heartbeatTime(h.Time); stamp.After(checkpoints.Global) && !stamp.After(now) {
+			checkpoints.Global = stamp
+		}
+	}
+
+	if err := checkpoints.save(); err != nil {
+		return nil, fmt.Errorf("failed saving ai checkpoints: %w", err)
+	}
+
+	return aiHeartbeats, nil
+}
+
+func parseHeartbeats(
+	ctx context.Context,
+	parser Parser,
+	reportPanic func(aiPanicReport),
+) (heartbeats Heartbeats, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			stack := string(debug.Stack())
+			log.Extract(ctx).Errorf("panicked: %v. Stack: %s", r, stack)
+
+			if reportPanic != nil {
+				reportPanic(aiPanicReport{
+					ParserName: parser.Name(),
+					Recovered:  r,
+					Stack:      stack,
+				})
+			}
+
+			heartbeats = nil
+			err = fmt.Errorf("panicked: %v", r)
+		}
+	}()
+
+	return parser.Parse(ctx)
+}
+
+func captureAIParsingLogs(ctx context.Context) (*bytes.Buffer, func()) {
+	logger := log.Extract(ctx)
+	logs := bytes.NewBuffer(nil)
+
+	if !logger.IsVerboseEnabled() {
+		return logs, func() {}
+	}
+
+	logOutput := logger.Output()
+	logger.SetOutput(io.MultiWriter(logOutput, logs))
+
+	return logs, func() {
+		logger.SetOutput(logOutput)
+	}
+}
+
+func sendAIPanicDiagnostics(ctx context.Context, v *viper.Viper, report aiPanicReport) error {
+	if v == nil {
+		return fmt.Errorf("missing viper instance")
+	}
+
+	paramAPI, err := params.LoadAPIParams(ctx, v, params.FlagReadOrderFlagPrecedence)
+	if err != nil {
+		return fmt.Errorf("failed to load API parameters: %s", err)
+	}
+
+	opts := []api.Option{
+		api.WithTimeout(paramAPI.Timeout),
+		api.WithHostname(strings.TrimSpace(paramAPI.Hostname)),
+		api.WithUserAgent(ctx, paramAPI.Plugin),
+	}
+
+	withAuth, err := api.WithAuth(api.BasicAuth{
+		Secret: paramAPI.Key,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to set up auth option on api client: %w", err)
+	}
+
+	opts = append(opts, withAuth)
+
+	if paramAPI.DisableSSLVerify {
+		opts = append(opts, api.WithDisableSSLVerify())
+	}
+
+	if !paramAPI.DisableSSLVerify && paramAPI.SSLCertFilepath != "" {
+		withSSLCert, err := api.WithSSLCertFile(ctx, paramAPI.SSLCertFilepath)
+		if err != nil {
+			return fmt.Errorf("failed to set up ssl cert file option on api client: %s", err)
+		}
+
+		opts = append(opts, withSSLCert)
+	} else if !paramAPI.DisableSSLVerify {
+		opts = append(opts, api.WithSSLCertPool(api.CACerts(ctx)))
+	}
+
+	if paramAPI.ProxyURL != "" {
+		withProxy, err := api.WithProxy(paramAPI.ProxyURL)
+		if err != nil {
+			return fmt.Errorf("failed to set up proxy option on api client: %w", err)
+		}
+
+		opts = append(opts, withProxy)
+
+		if strings.Contains(paramAPI.ProxyURL, `\\`) {
+			withNTLMRetry, err := api.WithNTLMRequestRetry(ctx, paramAPI.ProxyURL)
+			if err != nil {
+				return fmt.Errorf("failed to set up ntlm request retry option on api client: %w", err)
+			}
+
+			opts = append(opts, withNTLMRetry)
+		}
+	}
+
+	c := api.NewClient(paramAPI.URL, opts...)
+
+	return c.SendDiagnostics(
+		ctx,
+		paramAPI.Plugin,
+		true,
+		diagnostic.Error(fmt.Sprintf("ai parser %q panicked: %v", report.ParserName, report.Recovered)),
+		diagnostic.Logs(report.Logs),
+		diagnostic.Stack(report.Stack),
+	)
+}
+
+func getLastParsedAt(ctx context.Context, v *viper.Viper) (time.Time, error) {
+	lastParsedAt := time.Now().Add(-2 * time.Minute)
+
+	if v == nil {
+		return lastParsedAt, fmt.Errorf("missing viper instance")
+	}
+
+	logger := log.Extract(ctx)
+
+	lastParsedAtStr := vipertools.GetString(v, "internal.ai_logs_last_parsed_at")
+	if lastParsedAtStr != "" {
+		parsed, err := vipertools.SafeTimeParse(ini.DateFormat, lastParsedAtStr)
+		// nolint:gocritic
+		if err != nil {
+			logger.Warnf("failed to parse ai_logs_last_parsed_at: %s", err)
+		} else if parsed.After(time.Now()) {
+			lastParsedAt = time.Now()
+		} else {
+			lastParsedAt = parsed
+		}
+	} else {
+		lastParsedAt = time.Date(2025, time.February, 24, 0, 0, 0, 0, time.UTC)
+	}
+
+	return lastParsedAt, nil
+}
+
+// UpdateLastParsedAt stores the latest AI transcript timestamp covered by
+// generated AI heartbeats.
+func UpdateLastParsedAt(ctx context.Context, v *viper.Viper, parsedAt time.Time) error {
+	if v == nil {
+		return fmt.Errorf("missing viper instance")
+	}
+
+	w, err := ini.NewWriter(ctx, v, ini.InternalFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to parse internal config file: %s", err)
+	}
+
+	keyValue := map[string]string{
+		"ai_logs_last_parsed_at": parsedAt.Format(time.RFC3339Nano),
+	}
+
+	if err := w.Write(ctx, "internal", keyValue); err != nil {
+		return fmt.Errorf("failed to write to internal config file: %s", err)
+	}
+
+	return nil
+}
+
+// preserveHumanAttributes mutates aiHeartbeats pulling in the attributes from
+// humanHeartbeats, which should normally have more details already populated
+// from the IDE than available on aiHeartbeats.
+func preserveHumanAttributes(
+	aiHeartbeats []heartbeat.Heartbeat,
+	humanHeartbeats []heartbeat.Heartbeat,
+	config Config,
+	after float64,
+) (Heartbeats, *float64) {
+	originals := make(map[string][]heartbeat.Heartbeat, len(humanHeartbeats))
+	fallbackProjectFolder := ""
+
+	var firstHumanEdit *float64
+
+	for _, h := range humanHeartbeats {
+		if h.Time > after+1 &&
+			(firstHumanEdit == nil || h.Time < *firstHumanEdit) &&
+			h.HumanLineChanges != nil &&
+			*h.HumanLineChanges != 0 {
+			firstHumanEdit = &h.Time
+		}
+
+		originals[h.Entity] = append(originals[h.Entity], h)
+
+		if fallbackProjectFolder == "" {
+			fallbackProjectFolder = firstNonEmptyString(h.ProjectPathOverride, h.ProjectPath)
+			if h.EntityType == heartbeat.FileType && fallbackProjectFolder == "" {
+				fallbackProjectFolder = h.Entity
+			}
+		}
+	}
+
+	for i := range aiHeartbeats {
+		aiHeartbeat := &aiHeartbeats[i]
+
+		for _, h := range originals[aiHeartbeat.Entity] {
+			preserveAttributesFromHumanHeartbeat(aiHeartbeat, h)
+		}
+
+		if aiHeartbeat.ProjectOverride == "" {
+			aiHeartbeat.ProjectOverride = config.Project.Override
+		}
+
+		if aiHeartbeat.ProjectAlternate == "" {
+			aiHeartbeat.ProjectAlternate = config.Project.Alternate
+		}
+
+		if aiHeartbeat.BranchAlternate == "" {
+			aiHeartbeat.BranchAlternate = config.Project.BranchAlternate
+		}
+
+		if aiHeartbeat.ProjectPathOverride == "" {
+			aiHeartbeat.ProjectPathOverride = config.Sanitize.ProjectPathOverride
+		}
+
+		if aiHeartbeat.EntityType == heartbeat.AppType && aiHeartbeat.ProjectPathOverride == "" {
+			aiHeartbeat.ProjectPathOverride = fallbackProjectFolder
+		}
+	}
+
+	return aiHeartbeats, firstHumanEdit
+}
+
+func minMaxAIHeartbeatTimes(aiHeartbeats []heartbeat.Heartbeat) (float64, float64) {
+	minHeartbeatTime := aiHeartbeats[0].Time
+
+	maxHeartbeatTime := aiHeartbeats[0].Time
+	for i := 1; i < len(aiHeartbeats); i++ {
+		t := aiHeartbeats[i].Time
+		if t < minHeartbeatTime {
+			minHeartbeatTime = t
+		} else if t > maxHeartbeatTime {
+			maxHeartbeatTime = t
+		}
+	}
+
+	return minHeartbeatTime, maxHeartbeatTime
+}
+
+func heartbeatTime(timestamp float64) time.Time {
+	if math.IsNaN(timestamp) || math.IsInf(timestamp, 0) {
+		return time.Time{}
+	}
+
+	seconds, fraction := math.Modf(timestamp)
+	sec := int64(seconds)
+
+	nsec := int64(math.Round(fraction * float64(time.Second)))
+	if nsec >= int64(time.Second) {
+		sec++
+		nsec -= int64(time.Second)
+	}
+
+	return time.Unix(sec, nsec).UTC()
+}
+
+// timestampAtOrAfterCutoff reports whether timestamp is inside the inclusive
+// parsing window. Keeping this comparison in one place makes the cutoff
+// contract explicit for every AI parser.
+func timestampAtOrAfterCutoff(timestamp time.Time, cutoff time.Time) bool {
+	return !timestamp.Before(cutoff)
+}
+
+// heartbeatTimestamp converts a time to a heartbeat timestamp without
+// discarding subsecond precision. Dropping that precision can leave the saved
+// parsing cutoff behind the source event and cause the event to be parsed
+// repeatedly.
+func heartbeatTimestamp(timestamp time.Time) float64 {
+	return float64(timestamp.Unix()) + float64(timestamp.Nanosecond())/float64(time.Second)
+}
+
+func entityToTimeMap(aiHeartbeats []heartbeat.Heartbeat) map[string][]float64 {
+	entities := make(map[string][]float64, len(aiHeartbeats))
+	for _, h := range aiHeartbeats {
+		entities[h.Entity] = append(entities[h.Entity], h.Time)
+	}
+
+	return entities
+}
+
+func sameEntityAIHeartbeatWithinWindow(
+	h heartbeat.Heartbeat,
+	aiEntityTimes map[string][]float64,
+	windowSeconds float64,
+) bool {
+	for _, t := range aiEntityTimes[h.Entity] {
+		if t >= h.Time-windowSeconds && t <= h.Time+windowSeconds {
+			return true
+		}
+	}
+
+	return false
+}
+
+func preserveAttributesFromHumanHeartbeat(aiHeartbeat *heartbeat.Heartbeat, human heartbeat.Heartbeat) {
+	preserveStringPointer(&aiHeartbeat.Project, human.Project)
+	preserveStringValue(&aiHeartbeat.ProjectAlternate, human.ProjectAlternate)
+	preserveStringPointer(&aiHeartbeat.Branch, human.Branch)
+	preserveStringValue(&aiHeartbeat.BranchAlternate, human.BranchAlternate)
+	preserveStringPointer(&aiHeartbeat.Language, human.Language)
+	preserveStringValue(&aiHeartbeat.LanguageAlternate, human.LanguageAlternate)
+	preservePositiveIntPointer(&aiHeartbeat.Lines, human.Lines)
+	preserveStringValue(&aiHeartbeat.ProjectOverride, human.ProjectOverride)
+	preserveStringValue(&aiHeartbeat.ProjectPath, human.ProjectPath)
+	preserveStringValue(&aiHeartbeat.ProjectPathOverride, human.ProjectPathOverride)
+	preserveIntPointer(&aiHeartbeat.ProjectRootCount, human.ProjectRootCount)
+}
+
+func preserveStringPointer(dst **string, src *string) {
+	if *dst == nil && src != nil {
+		*dst = src
+	}
+}
+
+func preserveStringValue(dst *string, src string) {
+	if *dst == "" && src != "" {
+		*dst = src
+	}
+}
+
+func preserveIntPointer(dst **int, src *int) {
+	if *dst == nil && src != nil {
+		*dst = src
+	}
+}
+
+func preservePositiveIntPointer(dst **int, src *int) {
+	if src != nil && *src > 0 {
+		*dst = src
+	}
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+
+	return ""
+}
+
+func unknownIfEmpty(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "unknown"
+	}
+
+	return value
+}
+
+func entityUserAgents(hh []heartbeat.Heartbeat) map[string]string {
+	userAgents := make(map[string]string, len(hh))
+
+	for _, h := range hh {
+		if h.Entity == "" || h.UserAgent == "" {
+			continue
+		}
+
+		userAgents[h.Entity] = h.UserAgent
+	}
+
+	return userAgents
+}
+
+func aiPlugin(plugin Parser, version string) string {
+	if version == "" {
+		return plugin.Name()
+	}
+
+	return plugin.Name() + "/" + version
+}
+
+func aiModelUserAgentToken(model string, complexity string) string {
+	model = strings.Join(strings.Fields(strings.TrimSpace(model)), "-")
+
+	model = strings.Trim(model, "/")
+	if model == "" {
+		return ""
+	}
+
+	complexity = strings.Join(strings.Fields(strings.TrimSpace(complexity)), "-")
+
+	complexity = strings.Trim(complexity, "-_/.")
+	if complexity != "" && !strings.HasSuffix(strings.ToLower(model), "-"+strings.ToLower(complexity)) {
+		model += "-" + complexity
+	}
+
+	if product, version, found := strings.Cut(model, "/"); found && product != "" && version != "" {
+		first := rune(version[0])
+		if first >= '0' && first <= '9' {
+			return product + "/" + version
+		}
+	}
+
+	if separator := strings.LastIndex(model, "/"); separator != -1 {
+		model = strings.Trim(model[separator+1:], "-_.")
+	}
+
+	parts := strings.FieldsFunc(model, func(r rune) bool {
+		return r == '-' || r == '_'
+	})
+	for i, part := range parts {
+		for j, r := range part {
+			if r < '0' || r > '9' {
+				continue
+			}
+
+			if j == 0 {
+				if i == 0 {
+					return ""
+				}
+
+				return parts[i-1] + "/" + strings.Join(parts[i:], "-")
+			}
+
+			if j > 0 {
+				product := part[:j]
+				if strings.EqualFold(product, "v") && i > 0 {
+					product = parts[i-1]
+				}
+
+				version := part[j:]
+				if i+1 < len(parts) {
+					version += "-" + strings.Join(parts[i+1:], "-")
+				}
+
+				return product + "/" + version
+			}
+		}
+	}
+
+	return ""
+}
+
+func aiUserAgent(entity string, userAgents map[string]string, fallback string, parser string) string {
+	existing := fallback
+	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
+		existing = fromHeartbeat
+	}
+
+	if existing != "" {
+		return userAgentWithPrependedParser(existing, parser)
+	}
+
+	return parser
+}
+
+func aiUserAgentWithModel(
+	entity string,
+	userAgents map[string]string,
+	fallback string,
+	model string,
+	complexity string,
+) string {
+	existing := fallback
+	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
+		existing = fromHeartbeat
+	}
+
+	return userAgentWithPrependedAgent(existing, aiModelUserAgentToken(model, complexity))
+}
+
+func aiUserAgentWithModelAndEditor(
+	entity string,
+	userAgents map[string]string,
+	fallback string,
+	model string,
+	complexity string,
+	editor string,
+) string {
+	existing := fallback
+	if fromHeartbeat, found := userAgents[entity]; found && fromHeartbeat != "" {
+		existing = fromHeartbeat
+	}
+
+	existing = userAgentWithPrependedEditor(existing, editor)
+
+	return userAgentWithPrependedAgent(existing, aiModelUserAgentToken(model, complexity))
+}
+
+func userAgentWithPrependedAgent(userAgent string, agent string) string {
+	if userAgent == "" {
+		return agent
+	}
+
+	if agent == "" || userAgentHasToken(userAgent, agent) {
+		return userAgent
+	}
+
+	return strings.TrimSpace(agent + " " + userAgent)
+}
+
+func userAgentWithPrependedParser(userAgent string, parser string) string {
+	if userAgentHasProduct(userAgent, userAgentProduct(parser)) {
+		return userAgent
+	}
+
+	return strings.TrimSpace(parser + " " + userAgent)
+}
+
+func userAgentWithPrependedEditor(userAgent string, editor string) string {
+	if editor == "" {
+		return userAgent
+	}
+
+	if userAgentHasProduct(userAgent, userAgentProduct(editor)) {
+		return userAgent
+	}
+
+	return strings.TrimSpace(editor + " " + userAgent)
+}
+
+func aiAgentUserAgentToken(agent string) string {
+	agent = strings.Join(strings.Fields(strings.TrimSpace(agent)), "-")
+
+	agent = strings.Trim(agent, "/")
+	if agent == "" {
+		return ""
+	}
+
+	product, version, found := strings.Cut(agent, "/")
+	if found {
+		product = strings.Trim(product, "-_.")
+
+		version = strings.Trim(version, "-_.")
+		if product == "" || version == "" {
+			return ""
+		}
+
+		return product + "/" + version
+	}
+
+	for i, r := range agent {
+		if i == 0 || (r < '0' || r > '9') {
+			continue
+		}
+
+		separator := agent[i-1]
+		if separator != '-' && separator != '_' {
+			continue
+		}
+
+		product = strings.Trim(agent[:i-1], "-_.")
+
+		version = strings.Trim(agent[i:], "-_.")
+		if product == "" || version == "" {
+			return ""
+		}
+
+		return product + "/" + version
+	}
+
+	return agent
+}
+
+func userAgentHasProduct(userAgent string, product string) bool {
+	if userAgent == "" || product == "" {
+		return false
+	}
+
+	for _, field := range userAgentProductFields(userAgent) {
+		if strings.EqualFold(userAgentProduct(field), product) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func userAgentHasToken(userAgent string, token string) bool {
+	if userAgent == "" || token == "" {
+		return false
+	}
+
+	for _, field := range userAgentProductFields(userAgent) {
+		if strings.EqualFold(field, token) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func userAgentProduct(token string) string {
+	product, _, _ := strings.Cut(token, "/")
+
+	return product
+}
+
+func userAgentProductFields(userAgent string) []string {
+	fields := strings.Fields(userAgent)
+	if len(fields) == 0 {
+		return nil
+	}
+
+	if strings.HasPrefix(fields[0], "wakatime/") {
+		if len(fields) < 4 {
+			return nil
+		}
+
+		fields = fields[3:]
+	}
+
+	return fields
+}
+
+func appHeartbeatEntity(parserName string, rawEntity string) string {
+	entity := strings.TrimSpace(rawEntity)
+	if entity == "" {
+		return parserName
+	}
+
+	entity = filepath.Base(entity)
+
+	entity = strings.TrimSuffix(entity, filepath.Ext(entity))
+	if entity == "" || strings.EqualFold(entity, parserName) {
+		return parserName
+	}
+
+	return parserName + " " + entity
+}
+
+func countStringLines(content string) int {
+	lineChanges := 1
+
+	for _, char := range content {
+		if char == '\n' {
+			lineChanges++
+		}
+	}
+
+	return lineChanges
+}
+
+func promptLength(text string) int {
+	if strings.TrimSpace(text) == "" {
+		return 0
+	}
+
+	return utf8.RuneCountInString(text)
+}
+
+// replaceAppHeartbeats rewrites app-type heartbeats (session pulses with no file entity)
+// to use the last file entity edited within the same AI session, so project detection has
+// something to work with. Entities are tracked per AISession: heartbeats is the concatenated
+// output of every parser and every transcript, so a single rolling entity would let an app
+// heartbeat from one session inherit a file from an unrelated session parsed right before it.
+func replaceAppHeartbeats(heartbeats []heartbeat.Heartbeat) []heartbeat.Heartbeat {
+	type fileEntity struct {
+		path    string
+		unsaved bool
+	}
+
+	entityBySession := make(map[string]fileEntity)
+
+	for _, h := range heartbeats {
+		if h.EntityType == heartbeat.FileType && h.Entity != "" {
+			if _, ok := entityBySession[h.AISession]; !ok {
+				entityBySession[h.AISession] = fileEntity{path: h.Entity, unsaved: h.IsUnsavedEntity}
+			}
+		}
+	}
+
+	if len(entityBySession) == 0 {
+		return heartbeats
+	}
+
+	deduped := make([]heartbeat.Heartbeat, 0, len(heartbeats))
+
+	for i, h := range heartbeats {
+		if h.EntityType == heartbeat.FileType && h.Entity != "" {
+			entityBySession[h.AISession] = fileEntity{path: h.Entity, unsaved: h.IsUnsavedEntity}
+		}
+
+		entity, hasEntity := entityBySession[h.AISession]
+
+		if h.EntityType == heartbeat.AppType && hasEntity {
+			h.EntityType = heartbeat.FileType
+			h.Entity = entity.path
+			h.IsUnsavedEntity = entity.unsaved
+
+			if i > 0 && i+1 < len(heartbeats) && sameHeartbeat(h, heartbeats[i+1]) {
+				mergeHeartbeatCounts(&heartbeats[i+1], h)
+				continue
+			}
+
+			if i > 0 && len(deduped) > 0 && sameHeartbeat(h, deduped[len(deduped)-1]) {
+				mergeHeartbeatCounts(&deduped[len(deduped)-1], h)
+				continue
+			}
+		}
+
+		deduped = append(deduped, h)
+	}
+
+	return deduped
+}
+
+func sameHeartbeat(a, b heartbeat.Heartbeat) bool {
+	return a.AISession == b.AISession &&
+		a.Category == b.Category &&
+		a.Entity == b.Entity &&
+		a.EntityType == b.EntityType &&
+		a.IsUnsavedEntity == b.IsUnsavedEntity &&
+		absFloat64(a.Time-b.Time) < 60
+}
+
+func mergeHeartbeatCounts(dst *heartbeat.Heartbeat, src heartbeat.Heartbeat) {
+	dst.AILineChanges = addIntPointers(dst.AILineChanges, src.AILineChanges)
+	dst.HumanLineChanges = addIntPointers(dst.HumanLineChanges, src.HumanLineChanges)
+	dst.AIPromptLength += src.AIPromptLength
+	dst.AIInputTokens += src.AIInputTokens
+	dst.AICachedInputTokens += src.AICachedInputTokens
+
+	dst.AIOutputTokens += src.AIOutputTokens
+	if dst.AISubscriptionPlan == "" {
+		dst.AISubscriptionPlan = src.AISubscriptionPlan
+	}
+
+	if dst.Project == nil || *dst.Project == "" {
+		dst.Project = src.Project
+	}
+
+	if dst.ProjectAlternate == "" {
+		dst.ProjectAlternate = src.ProjectAlternate
+	}
+
+	if dst.Branch == nil || *dst.Branch == "" {
+		dst.Branch = src.Branch
+	}
+
+	if dst.BranchAlternate == "" {
+		dst.BranchAlternate = src.BranchAlternate
+	}
+
+	if dst.Language == nil || *dst.Language == "" {
+		dst.Language = src.Language
+	}
+
+	if dst.LanguageAlternate == "" {
+		dst.LanguageAlternate = src.LanguageAlternate
+	}
+
+	if dst.ProjectOverride == "" {
+		dst.ProjectOverride = src.ProjectOverride
+	}
+
+	if dst.ProjectPath == "" {
+		dst.ProjectPath = src.ProjectPath
+	}
+
+	if dst.ProjectPathOverride == "" {
+		dst.ProjectPathOverride = src.ProjectPathOverride
+	}
+}
+
+func addIntPointers(dst *int, src *int) *int {
+	switch {
+	case dst == nil:
+		return src
+	case src == nil:
+		return dst
+	default:
+		sum := *dst + *src
+
+		return &sum
+	}
+}
+
+func absFloat64(v float64) float64 {
+	if v < 0 {
+		return -v
+	}
+
+	return v
+}
+
+// WithFiltering applies AI exclusions before heartbeats are sanitized or queued.
+func WithFiltering(config Config) heartbeat.HandleOption {
+	return func(next heartbeat.Handle) heartbeat.Handle {
+		return func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+			filtered, err := newEntityExclusions(config).filter(ctx, hh)
+			if err != nil {
+				return nil, err
+			}
+
+			return next(ctx, filtered)
+		}
+	}
+}
+
+func (f *entityExclusions) filter(ctx context.Context, hh []heartbeat.Heartbeat) (Heartbeats, error) {
+	filtered := make(Heartbeats, 0, len(hh))
+	for _, h := range hh {
+		if h.Category != heartbeat.AICodingCategory.String() {
+			filtered = append(filtered, h)
+			continue
+		}
+
+		excluded, err := f.excludes(ctx, h)
+		if err != nil {
+			return nil, err
+		}
+
+		if !excluded {
+			filtered = append(filtered, h)
+			continue
+		}
+
+		log.Extract(ctx).Debugf("skipping ai coding heartbeat for excluded entity: %s", h.Entity)
+
+		if h.LocalFileNeedsCleanup {
+			if err := os.Remove(h.LocalFile); err != nil {
+				log.Extract(ctx).Warnf("unable to delete tmp file: %s", err)
+			}
+		}
+	}
+
+	return filtered, nil
+}
+
+// Each batch shares decisions and project settings across transcript and IDE
+// heartbeats. A new batch reads configuration again so changes take effect.
+type entityExclusions struct {
+	config            Config
+	decisions         map[exclusionEntity]bool
+	paramsByDirectory map[string]params.AIParams
+}
+
+type exclusionEntity struct {
+	entity  string
+	unsaved bool
+}
+
+func newEntityExclusions(config Config) *entityExclusions {
+	return &entityExclusions{
+		config:            config,
+		decisions:         make(map[exclusionEntity]bool),
+		paramsByDirectory: make(map[string]params.AIParams),
+	}
+}
+
+func (f *entityExclusions) excludes(ctx context.Context, h heartbeat.Heartbeat) (bool, error) {
+	if h.EntityType != heartbeat.FileType || h.Entity == "" {
+		return f.config.SyncDisabled, nil
+	}
+
+	key := exclusionEntity{entity: h.Entity, unsaved: h.IsUnsavedEntity}
+	if excluded, ok := f.decisions[key]; ok {
+		return excluded, nil
+	}
+
+	aiParams, err := f.loadParams(ctx, h)
+	if err != nil {
+		return false, err
+	}
+
+	excluded := aiParams.SyncDisabled
+	if !excluded && len(aiParams.Exclude) > 0 {
+		if !h.IsRemote() {
+			h = heartbeat.Format(ctx, h)
+		}
+
+		h = heartbeat.ModifyEntity(ctx, h)
+		for _, pattern := range aiParams.Exclude {
+			if pattern.MatchString(ctx, h.Entity) {
+				excluded = true
+				break
+			}
+		}
+	}
+
+	f.decisions[key] = excluded
+
+	return excluded, nil
+}
+
+func (f *entityExclusions) loadParams(ctx context.Context, h heartbeat.Heartbeat) (params.AIParams, error) {
+	base := params.AIParams{SyncDisabled: f.config.SyncDisabled, Exclude: f.config.Exclude}
+	if f.config.V == nil || h.IsUnsavedEntity {
+		return base, nil
+	}
+
+	directory := filepath.Dir(h.Entity)
+	if cached, ok := f.paramsByDirectory[directory]; ok {
+		return cached, nil
+	}
+
+	fp, ok := file.Find(ctx, directory, ".wakatime")
+	if !ok {
+		f.paramsByDirectory[directory] = base
+		return base, nil
+	}
+
+	v := vipertools.MustNew()
+	if err := v.MergeConfigMap(f.config.V.AllSettings()); err != nil {
+		return base, err
+	}
+
+	if err := ini.ReadInConfig(v, fp); err != nil {
+		return base, fmt.Errorf("failed to read AI project settings %q: %w", fp, err)
+	}
+	// Use the same effective settings as the heartbeat and offline pipelines.
+	// The merged config already includes global settings and command-line flags.
+	effective, err := params.LoadAIParams(ctx, v, params.FlagReadOrderProjectConfigPrecedence)
+	if err != nil {
+		return base, err
+	}
+
+	f.paramsByDirectory[directory] = effective
+
+	return effective, nil
+}

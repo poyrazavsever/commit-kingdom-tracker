@@ -1,0 +1,32 @@
+{
+    "responses": [
+        [
+            {
+                "data": {
+                    "id": "A958CD22-E06F-4914-9C1F-0353C739E729"
+                }
+            },
+            201
+        ],
+        [
+            {
+                "data": {
+                    "id": "D32BFD31-B952-4811-9AC5-468D9C32EAE5"
+                }
+            },
+            201
+        ],
+        [
+            {
+                "error": "Too many heartbeats"
+            },
+            429
+        ],
+        [
+            {
+                "error": "Too many heartbeats"
+            },
+            429
+        ]
+    ]
+}
