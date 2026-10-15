@@ -1,0 +1,4 @@
+Tudi Tracker includes software from wakatime-cli
+(https://github.com/wakatime/wakatime-cli, commit bac8eba3b7f10f0a4c23dcc7609277b6be406277),
+Copyright (c) 2021, WakaTime, LLC, licensed under the BSD 3-Clause License.
+See cli/LICENSE for the full text. Tudi Tracker is not affiliated with or endorsed by WakaTime.

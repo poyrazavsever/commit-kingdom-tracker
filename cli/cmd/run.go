@@ -14,6 +14,7 @@ import (
 	cmdapi "github.com/wakatime/wakatime-cli/cmd/api"
 	"github.com/wakatime/wakatime-cli/cmd/configread"
 	"github.com/wakatime/wakatime-cli/cmd/configwrite"
+	"github.com/wakatime/wakatime-cli/cmd/link"
 	"github.com/wakatime/wakatime-cli/cmd/fileexperts"
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
 	cmdoffline "github.com/wakatime/wakatime-cli/cmd/offline"
@@ -113,6 +114,13 @@ func RunE(cmd *cobra.Command, v *viper.Viper) error {
 		logger.Debugln("command: config-write")
 
 		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), configwrite.Run)
+	}
+
+	// tudi-tracker: link this computer to a Tudi Daily account.
+	if v.IsSet("link") {
+		logger.Debugln("command: link")
+
+		return RunCmd(ctx, v, logger.IsVerboseEnabled(), logger.SendDiagsOnErrors(), link.Run)
 	}
 
 	if v.GetBool("today") {

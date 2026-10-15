@@ -152,7 +152,7 @@ func TestFilePath(t *testing.T) {
 		Expected   string
 	}{
 		"default": {
-			Expected: filepath.Join(home, ".wakatime.cfg"),
+			Expected: filepath.Join(home, ".tudi.cfg"),
 		},
 		"viper": {
 			ViperValue: "~/path/.wakatime.cfg",
@@ -164,11 +164,11 @@ func TestFilePath(t *testing.T) {
 		},
 		"env trailing slash": {
 			EnvVar:   "~/path2/",
-			Expected: filepath.Join(home, "path2", ".wakatime.cfg"),
+			Expected: filepath.Join(home, "path2", ".tudi.cfg"),
 		},
 		"env without trailing slash": {
 			EnvVar:   "~/path2",
-			Expected: filepath.Join(home, "path2", ".wakatime.cfg"),
+			Expected: filepath.Join(home, "path2", ".tudi.cfg"),
 		},
 	}
 

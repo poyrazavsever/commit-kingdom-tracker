@@ -28,7 +28,7 @@ const (
 	// defaultFolder is the name of the default wakatime resources folder.
 	defaultFolder = ".wakatime"
 	// defaultFile is the name of the default wakatime config file.
-	defaultFile = ".wakatime.cfg"
+	defaultFile = ".tudi.cfg" // tudi-tracker: its own file, so a WakaTime setup on the same computer is untouched
 	// defaultInternalFile is the name of the default wakatime internal config file.
 	defaultInternalFile = "wakatime-internal.cfg"
 	// DateFormat is the default format for date in config file.
@@ -286,7 +286,12 @@ func InternalFilePath(ctx context.Context, v *viper.Viper) (string, error) {
 func WakaHomeDir(ctx context.Context) (string, WakaHomeType, error) {
 	logger := log.Extract(ctx)
 
-	home, exists := os.LookupEnv("WAKATIME_HOME")
+	// tudi-tracker: TUDI_HOME wins over WAKATIME_HOME.
+	home, exists := os.LookupEnv("TUDI_HOME")
+	if !exists || home == "" {
+		home, exists = os.LookupEnv("WAKATIME_HOME")
+	}
+
 	if exists && home != "" {
 		home, err := homedir.Expand(home)
 		if err == nil {

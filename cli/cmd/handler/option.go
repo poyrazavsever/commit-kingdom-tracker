@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"context"
+	"os"
+
 	"github.com/wakatime/wakatime-cli/pkg/ai"
 	"github.com/wakatime/wakatime-cli/pkg/apikey"
 	"github.com/wakatime/wakatime-cli/pkg/deps"
@@ -8,6 +11,7 @@ import (
 	"github.com/wakatime/wakatime-cli/pkg/filestats"
 	"github.com/wakatime/wakatime-cli/pkg/filter"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/ini"
 	"github.com/wakatime/wakatime-cli/pkg/language"
 	"github.com/wakatime/wakatime-cli/pkg/params"
 	"github.com/wakatime/wakatime-cli/pkg/project"
@@ -119,15 +123,27 @@ func WithProjectFiltering() Preprocessor {
 }
 
 // WithHeartbeatSanitization returns a Preprocessor that applies sanitization to heartbeats.
+// tudi-tracker: the Tudi privacy step always runs after it, whatever the config says (heartbeat.TudiPrivacy).
 func WithHeartbeatSanitization() Preprocessor {
 	return func(params params.Params) heartbeat.HandleOption {
-		return heartbeat.WithSanitization(heartbeat.SanitizeConfig{
+		upstream := heartbeat.WithSanitization(heartbeat.SanitizeConfig{
 			HideBranchPatterns:     params.Heartbeat.Sanitize.HideBranchNames,
 			HideDependencyPatterns: params.Heartbeat.Sanitize.HideDependencies,
 			HideFilePatterns:       params.Heartbeat.Sanitize.HideFileNames,
 			HideProjectFolder:      params.Heartbeat.Sanitize.HideProjectFolder,
 			HideProjectPatterns:    params.Heartbeat.Sanitize.HideProjectNames,
 		})
+
+		return func(next heartbeat.Handle) heartbeat.Handle {
+			return upstream(func(ctx context.Context, hh []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
+				home, _, err := ini.WakaHomeDir(ctx)
+				if err != nil {
+					home = os.TempDir()
+				}
+
+				return heartbeat.WithTudiPrivacy(home)(next)(ctx, hh)
+			})
+		}
 	}
 }
 
