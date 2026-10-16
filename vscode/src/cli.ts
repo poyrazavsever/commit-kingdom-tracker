@@ -34,7 +34,7 @@ export function sendHeartbeat(file: string, isWrite: boolean, settings: CliSetti
   }
 }
 
-/** Runs a CLI command that answers on stdout (--today, --link) with a time limit. */
+/** Runs a CLI command that answers on stdout (--today) with a time limit. */
 export function runCli(args: string[], settings: CliSettings, timeoutMs = 30_000): Promise<string> {
   const all = settings.apiUrl ? [...args, '--api-url', settings.apiUrl] : args;
   return new Promise((resolve, reject) => {

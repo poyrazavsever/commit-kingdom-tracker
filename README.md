@@ -12,7 +12,7 @@ This repository is open so you can check exactly what is sent.
 |---|---|
 | `desktop/` | Tudi Desktop (Electron, MIT): signs this computer in with your Tudi Daily account, shows today's coding and keeps a small Tudi on screen that watches, waits, naps and cheers with you |
 | `cli/` | `tudi-cli`, a fork of [wakatime-cli](https://github.com/wakatime/wakatime-cli) (BSD-3-Clause) pointed at Tudi Daily, with an always-on privacy step |
-| `vscode/` | The extension for the VS Code family (VS Code, Cursor, Windsurf, VSCodium) |
+| `vscode/` | The extension for the VS Code family (VS Code, Cursor, Windsurf, VSCodium, Antigravity) |
 
 Editor extensions call `tudi-cli` the same way WakaTime plugins call `wakatime-cli`.
 
@@ -22,6 +22,8 @@ Editor extensions call `tudi-cli` the same way WakaTime plugins call `wakatime-c
 2. Tudi Desktop gets a device key for this computer. It keeps the key encrypted with your operating system's key store and writes it to `~/.tudi.cfg` for `tudi-cli` (set `TUDI_HOME` to use another folder).
 
 The key can only write coding activity. Signing out of Tudi Desktop, or removing the computer in the app's Code Tower, turns it off.
+
+3. Tudi Desktop carries `tudi-cli` and puts it in `~/.tudi`; each Tudi Desktop update brings the matching `tudi-cli`. It finds the VS Code family editors on the computer by their install folders and installs the Tudi Tracker extension in each with one click. The extension never asks you to sign in: it uses the key Tudi Desktop wrote and sends nothing until there is one.
 
 ## What changed from wakatime-cli
 
@@ -43,13 +45,23 @@ go test ./pkg/heartbeat/ ./pkg/ini/
 
 Some upstream tests in `cmd/heartbeat`, `cmd/fileexperts`, `pkg/ai` and `pkg/params` still expect upstream behaviour (no privacy step, no lookback limit) and fail; they are being adapted.
 
-Tudi Desktop:
+Tudi Desktop (`build:cli` puts this platform's `tudi-cli` in `desktop/resources/bin/`; pass targets such as `darwin-arm64 win32-x64` to build others):
 
 ```sh
 cd desktop
 npm install
+npm run build:cli
 npm test
 TUDI_API_URL=http://localhost:5130 TUDI_APP_URL=http://localhost:8080 npm start
+```
+
+The VS Code extension (until it is on the Marketplace and Open VSX, set `TUDI_VSIX` to the built `.vsix` and Tudi Desktop installs that):
+
+```sh
+cd vscode
+npm install
+npm test
+npm run package
 ```
 
 ## Licence
