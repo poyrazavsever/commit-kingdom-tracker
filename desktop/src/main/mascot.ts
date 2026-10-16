@@ -21,12 +21,13 @@ export class Mascot {
   show(view: MascotView): void {
     this.view = view;
     if (view.intro) this.introPending = true;
+    if (this.window?.isDestroyed()) this.window = null;
     if (!this.window) this.create();
     else this.send();
   }
 
   hide(): void {
-    this.window?.destroy();
+    if (this.window && !this.window.isDestroyed()) this.window.destroy();
     this.window = null;
   }
 
@@ -54,6 +55,8 @@ export class Mascot {
     if (process.platform === 'darwin') window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     window.webContents.on('will-navigate', event => event.preventDefault());
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    // A crashed or killed page is dropped; the next update builds Tudi again.
+    window.webContents.on('render-process-gone', () => this.hide());
     window.loadFile(join(__dirname, '..', '..', 'static', 'mascot.html'));
     window.webContents.once('did-finish-load', () => {
       this.place();
@@ -71,8 +74,13 @@ export class Mascot {
   };
 
   private send(): void {
-    if (!this.window || !this.view || this.window.webContents.isLoading()) return;
-    this.window.webContents.send('mascot', { ...this.view, intro: this.introPending });
-    this.introPending = false;
+    if (!this.window || this.window.isDestroyed() || !this.view || this.window.webContents.isLoading()) return;
+    try {
+      this.window.webContents.send('mascot', { ...this.view, intro: this.introPending });
+      this.introPending = false;
+    } catch {
+      // The page went away between the check and the send; the next update recreates it.
+      this.hide();
+    }
   }
 }
