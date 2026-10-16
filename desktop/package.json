@@ -1,0 +1,20 @@
+{
+  "name": "tudi-desktop",
+  "productName": "Tudi Desktop",
+  "description": "Signs this computer in to Tudi Daily, sets up tudi-cli and shows today's coding.",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "main": "out/main/main.js",
+  "scripts": {
+    "postinstall": "install-electron --no",
+    "build": "tsc -p .",
+    "start": "tsc -p . && electron .",
+    "test": "tsc -p . && node --test out/test/signIn.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.4",
+    "electron": "44.5.1",
+    "typescript": "5.9.3"
+  }
+}

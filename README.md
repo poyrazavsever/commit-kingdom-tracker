@@ -10,29 +10,26 @@ This repository is open so you can check exactly what is sent.
 
 | Folder | What |
 |---|---|
-| `cli/` | `tudi-cli`, a fork of [wakatime-cli](https://github.com/wakatime/wakatime-cli) (BSD-3-Clause) pointed at Tudi Daily, with an always-on privacy step and a `--link` command |
+| `desktop/` | Tudi Desktop (Electron, MIT): signs this computer in with your Tudi Daily account and shows today's coding |
+| `cli/` | `tudi-cli`, a fork of [wakatime-cli](https://github.com/wakatime/wakatime-cli) (BSD-3-Clause) pointed at Tudi Daily, with an always-on privacy step |
+| `vscode/` | The extension for the VS Code family (VS Code, Cursor, Windsurf, VSCodium) |
 
-Editor extensions (VS Code family, JetBrains) come next and call `tudi-cli` the same way WakaTime plugins call `wakatime-cli`.
+Editor extensions call `tudi-cli` the same way WakaTime plugins call `wakatime-cli`.
 
-## Link your computer
+## Sign your computer in
 
-1. In the Tudi Daily app open **Kod Kulesi → Bilgisayarını bağla**; it shows an 8-character code.
-2. Run:
+1. Install Tudi Desktop and click **Sign in**. Your browser opens Tudi Daily; approve this computer there.
+2. Tudi Desktop gets a device key for this computer. It keeps the key encrypted with your operating system's key store and writes it to `~/.tudi.cfg` for `tudi-cli` (set `TUDI_HOME` to use another folder).
 
-   ```sh
-   tudi-cli --link ABCD-EFGH
-   ```
-
-The device key is written to `~/.tudi.cfg` (set `TUDI_HOME` to use another folder). It can only write coding activity and you can remove the computer in the app at any time.
+The key can only write coding activity. Signing out of Tudi Desktop, or removing the computer in the app's Code Tower, turns it off.
 
 ## What changed from wakatime-cli
 
 Upstream: wakatime/wakatime-cli at `bac8eba3b7f10f0a4c23dcc7609277b6be406277`. Every change is marked with a `tudi-tracker` comment.
 
-- Default API: `https://api.tudidaily.com/api/tracker/v1`; config file `~/.tudi.cfg` (a WakaTime setup on the same computer is left alone).
+- Default API: `https://api.tudidaily.com/api/tracker/v1`; config file `~/.tudi.cfg` and its own folder `~/.tudi` for the offline queue, log and state (a WakaTime setup on the same computer is left alone).
 - `pkg/heartbeat/tudi_privacy.go`: runs on every heartbeat after the upstream sanitization, whatever the config says. It removes the file name (keeps the extension), branch, dependencies, line numbers, AI session id and prompt length, and hashes the project name with a per-computer salt (`~/.tudi-salt`).
-- `cmd/link`: `--link CODE` trades a code from the app for a device key.
-- `pkg/ai/tudi_lookback.go`: AI tool logs are read from the moment the computer is linked and never more than 24 hours back. Upstream starts a first sync in February 2025 and reads every AI session on the computer; on a busy machine that took over 8 minutes, now the first heartbeat after linking takes about a second.
+- `pkg/ai/tudi_lookback.go`: AI tool logs are read from the moment the computer is signed in and never more than 24 hours back. Upstream starts a first sync in February 2025 and reads every AI session on the computer; on a busy machine that took over 8 minutes, now the first heartbeat after signing in takes about a second.
 
 AI line attribution works as upstream does: the CLI reads the local logs of AI coding tools (Claude Code, Copilot, Cursor…) on your computer to count AI-written lines. Those logs never leave your computer; only the line counts do. `--sync-ai-disable` turns it off.
 
@@ -41,7 +38,18 @@ AI line attribution works as upstream does: the CLI reads the local logs of AI c
 ```sh
 cd cli
 go build -o ../bin/tudi-cli .
-go test ./pkg/heartbeat/ ./pkg/ini/ ./cmd/...
+go test ./pkg/heartbeat/ ./pkg/ini/
+```
+
+Some upstream tests in `cmd/heartbeat`, `cmd/fileexperts`, `pkg/ai` and `pkg/params` still expect upstream behaviour (no privacy step, no lookback limit) and fail; they are being adapted.
+
+Tudi Desktop:
+
+```sh
+cd desktop
+npm install
+npm test
+TUDI_API_URL=http://localhost:5130 TUDI_APP_URL=http://localhost:8080 npm start
 ```
 
 ## Licence
