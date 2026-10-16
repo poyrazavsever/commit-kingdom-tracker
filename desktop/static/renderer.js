@@ -15,7 +15,7 @@
       ai: 'AI',
       reward: "Today's reward",
       week: 'Last 7 days',
-      openApp: 'Open Tudi Daily',
+      openApp: 'Open the app',
       signOut: 'Sign out',
       min: 'min',
       errors: {
@@ -39,7 +39,7 @@
       ai: 'AI',
       reward: 'Günün ödülü',
       week: 'Son 7 gün',
-      openApp: 'Tudi Daily’yi aç',
+      openApp: 'Uygulamayı aç',
       signOut: 'Çıkış yap',
       min: 'dk',
       errors: {
@@ -70,81 +70,99 @@
     app.replaceChildren(...nodes.filter(node => node !== null));
   }
 
+  let lastPhase = null;
+
   function render(state) {
     const t = text[state.locale] || text.en;
     document.documentElement.lang = state.locale;
-    const error = state.error ? el('p', { className: 'error', role: 'alert' }, t.errors[state.error]) : null;
+    // Entrance motion plays when the view changes, not on every minute's refresh.
+    app.classList.toggle('fresh', state.phase !== lastPhase);
+    lastPhase = state.phase;
+    const error = state.error ? el('p', { className: `notice ${state.error === 'offline' ? 'info' : 'error'}`, role: state.error === 'offline' ? 'status' : 'alert' }, t.errors[state.error]) : null;
+    const button = (label, onclick, kind = '') => el('button', { className: `button ${kind}`.trim(), onclick }, label);
 
     if (state.phase === 'signedOut') {
       show(
-        el('h1', {}, t.title),
-        el('p', {}, t.signedOutBody),
+        el('div', { className: 'state appear' }, el('img', { src: 'art/tracker-laptop.webp', alt: '' }), el('h1', {}, t.title), el('p', {}, t.signedOutBody)),
         error,
         el('div', { className: 'spacer' }),
-        el('button', { className: 'primary', onclick: () => window.tudi.signIn() }, t.signIn),
+        button(t.signIn, () => window.tudi.signIn()),
       );
       return;
     }
 
     if (state.phase === 'waiting') {
       show(
-        el('h1', {}, t.waitingTitle),
-        el('p', {}, t.waitingBody),
+        el('div', { className: 'state appear' }, el('img', { src: 'art/tracker-laptop.webp', alt: '' }), el('h1', {}, t.waitingTitle), el('p', {}, t.waitingBody), el('div', { className: 'dots', ariaHidden: true }, el('i'), el('i'), el('i'))),
         el('div', { className: 'spacer' }),
-        el('button', { onclick: () => window.tudi.cancelSignIn() }, t.cancel),
+        button(t.cancel, () => window.tudi.cancelSignIn(), 'secondary'),
       );
       return;
     }
 
-    const name = el('input', { value: state.deviceName, maxLength: 48, ariaLabel: t.computer });
+    // A refresh never throws away a name the member is typing.
+    const typing = document.activeElement?.id === 'device-name' ? document.activeElement.value : null;
+    const name = el('input', { id: 'device-name', className: 'field', value: typing ?? state.deviceName, maxLength: 48 });
     const save = () => window.tudi.rename(name.value);
     name.addEventListener('keydown', event => event.key === 'Enter' && save());
 
     const summary = state.summary;
     const today = summary?.today;
-    const minutes = value => `${Math.floor(value ?? 0)} ${t.min}`;
     const cap = today?.dailyCap ?? 240;
-    const rewarded = today?.rewardedMinutes ?? 0;
-    const tallest = Math.max(60, ...(summary?.week ?? []).map(day => day.weightedMinutes));
+    const rewarded = Math.min(today?.rewardedMinutes ?? 0, cap);
+    const week = summary?.week ?? [];
+    const tallest = Math.max(60, ...week.map(day => day.weightedMinutes));
     const weekday = new Intl.DateTimeFormat(state.locale, { weekday: 'narrow', timeZone: 'UTC' });
+    const metric = (art, value, label) =>
+      el('div', { className: 'metric', ariaLabel: `${value} ${t.min} ${label}` }, el('img', { src: art, alt: '' }), el('div', { className: 'well' }, el('span', { className: 'value' }, String(value)), el('span', { className: 'name' }, label)));
+    const delay = (node, ms) => {
+      node.classList.add('appear');
+      node.style.animationDelay = `${ms}ms`;
+      return node;
+    };
 
+    const focused = typing !== null;
     show(
-      el('h1', {}, t.title),
-      error,
-      el('div', { className: 'box' }, el('span', { className: 'label' }, t.computer), el('div', { className: 'row' }, name, el('button', { onclick: save, style: 'flex:0' }, t.save))),
-      el(
-        'div',
-        { className: 'box' },
-        el('span', { className: 'label' }, t.today),
+      error ?? el('h1', {}, t.title),
+      delay(el('div', { className: 'card' }, el('label', { className: 'label', htmlFor: 'device-name' }, t.computer), el('div', { className: 'row' }, name, button(t.save, save, 'secondary small'))), 0),
+      delay(el('div', { className: 'metrics' }, metric('art/stat-human.webp', Math.floor(today?.humanMinutes ?? 0), t.you), metric('art/stat-ai.webp', Math.floor(today?.aiMinutes ?? 0), t.ai)), 60),
+      delay(
         el(
           'div',
-          { className: 'row' },
-          el('div', {}, el('div', { className: 'big' }, minutes(today?.humanMinutes)), el('span', { className: 'label' }, t.you)),
-          el('div', {}, el('div', { className: 'big' }, minutes(today?.aiMinutes)), el('span', { className: 'label' }, t.ai)),
+          { className: 'card' },
+          el('h2', {}, t.reward),
+          el(
+            'div',
+            { className: 'progress', role: 'progressbar', ariaValueNow: rewarded, ariaValueMin: 0, ariaValueMax: cap, ariaLabel: `${t.reward}: ${rewarded} / ${cap} ${t.min}` },
+            el('div', { className: 'track' }, rewarded > 0 ? el('div', { className: `fill${rewarded >= cap ? ' done' : ''}`, style: `width:${(rewarded / cap) * 100}%` }) : null),
+            el('span', { className: 'count' }, `${rewarded}/${cap}`),
+          ),
         ),
-        el('span', { className: 'label' }, `${t.reward}: ${rewarded} / ${cap} ${t.min}`),
-        el('div', { className: 'bar', role: 'progressbar', ariaValueNow: rewarded, ariaValueMax: cap, ariaLabel: t.reward }, el('div', { style: `width:${Math.min(100, (rewarded / cap) * 100)}%` })),
+        120,
       ),
-      el(
-        'div',
-        { className: 'box' },
-        el('span', { className: 'label' }, t.week),
+      delay(
         el(
           'div',
-          { className: 'week' },
-          ...(summary?.week ?? []).map(day =>
-            el(
-              'div',
-              { title: minutes(day.weightedMinutes) },
-              el('span', { style: `height:${(day.weightedMinutes / tallest) * 100}%` }),
-              weekday.format(new Date(`${day.date}T00:00:00Z`)),
+          { className: 'card grow' },
+          el('h2', {}, t.week),
+          el(
+            'div',
+            { className: 'week' },
+            ...week.map((day, index) =>
+              el(
+                'div',
+                { className: `day${index === week.length - 1 ? ' today' : ''}${day.weightedMinutes < 1 ? ' empty' : ''}`, title: `${Math.floor(day.weightedMinutes)} ${t.min}` },
+                el('div', { className: 'bar', style: `height:${Math.max(6, (day.weightedMinutes / tallest) * 100)}%;animation-delay:${200 + index * 40}ms` }),
+                el('span', {}, weekday.format(new Date(`${day.date}T00:00:00Z`))),
+              ),
             ),
           ),
         ),
+        180,
       ),
-      el('div', { className: 'spacer' }),
-      el('div', { className: 'row' }, el('button', { onclick: () => window.tudi.signOut() }, t.signOut), el('button', { className: 'primary', onclick: () => window.tudi.openApp() }, t.openApp)),
+      el('div', { className: 'actions' }, button(t.signOut, () => window.tudi.signOut(), 'secondary'), button(t.openApp, () => window.tudi.openApp())),
     );
+    if (focused) name.focus();
   }
 
   window.tudi.onState(render);
