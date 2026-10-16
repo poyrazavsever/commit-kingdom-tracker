@@ -11,6 +11,7 @@ import { forgetDevice, loadDevice, saveDevice } from './keyStore';
 import { Mascot } from './mascot';
 import { CHEER_MS, type Mood, moodOf, shouldCheer } from './mood';
 import { loadSettings, saveSettings, type Settings } from './settings';
+import { restartToUpdate, startUpdates } from './updater';
 import { type Device, signIn, SignInCancelled } from './signIn';
 
 /** What the window shows; the renderer only draws it (static/renderer.js). */
@@ -38,6 +39,8 @@ let refreshTimer: NodeJS.Timeout | null = null;
 let quitting = false;
 let settings: Settings;
 let cheerUntil = 0;
+/** A downloaded update waiting for a restart. */
+let updateReady: string | null = null;
 const view: View = { phase: 'signedOut', locale: 'en', deviceName: '', summary: null, editors: null, error: null };
 /** Editors are looked for again when the window comes back, at most this often (each look starts every editor's CLI). */
 const EDITORS_EVERY_MS = 2 * 60_000;
@@ -74,6 +77,10 @@ function start(): void {
   createTray();
   showWindow();
   setInterval(updateMascot, MOOD_TICK_MS);
+  startUpdates(version => {
+    updateReady = version;
+    updateTray();
+  });
 }
 
 function registerIpc(): void {
@@ -304,6 +311,9 @@ function updateTray(): void {
       { label: tr ? 'Tudi Daily’yi aç' : 'Open Tudi Daily', click: () => void shell.openExternal(appUrl) },
       { label: tr ? 'Ekranda Tudi' : 'Tudi on screen', type: 'checkbox', checked: settings?.showMascot ?? true, enabled: view.phase === 'signedIn', click: item => toggleMascot(item.checked) },
       { type: 'separator' },
+      ...(updateReady
+        ? [{ label: tr ? `Güncelle ve yeniden başlat (${updateReady})` : `Restart to update (${updateReady})`, click: restartToUpdate }, { type: 'separator' as const }]
+        : []),
       { label: tr ? 'Çık' : 'Quit', click: () => app.quit() },
     ]),
   );

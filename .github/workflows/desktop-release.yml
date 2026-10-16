@@ -1,0 +1,58 @@
+# Builds Tudi Desktop with its tudi-cli and publishes it to GitHub Releases, where installed copies update from.
+# Start a release by pushing a tag that matches desktop/package.json's version: `git tag desktop-v0.1.0 && git push --tags`.
+#
+# Signing:
+# - macOS: signed and notarised when the Apple secrets below exist (CSC_LINK / CSC_KEY_PASSWORD: the Developer ID
+#   certificate as base64 .p12; APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID for notarisation).
+# - Windows: Certum SimplySign signs with the founder's session (ADR-027), so a signed Windows build is made on the
+#   founder's machine and uploaded to the same release. Until the certificate exists the CI build is unsigned.
+name: Tudi Desktop release
+
+on:
+  push:
+    tags: ['desktop-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            cli: win32-x64
+            target: --win --x64
+          - os: macos-latest
+            cli: darwin-arm64 darwin-x64
+            target: --mac --arm64 --x64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+          cache-dependency-path: cli/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci
+      - run: npm run build:cli -- ${{ matrix.cli }}
+      - run: npm test
+      - run: npx tsc -p . && npx electron-builder ${{ matrix.target }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # No certificate yet: build unsigned instead of failing.
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}

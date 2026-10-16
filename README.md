@@ -55,6 +55,8 @@ npm test
 TUDI_API_URL=http://localhost:5130 TUDI_APP_URL=http://localhost:8080 npm start
 ```
 
+Packaging and releases: `npm run dist` builds the installer for this machine into `desktop/dist` (Windows: a per-user NSIS setup). Pushing a `desktop-vX.Y.Z` tag matching `desktop/package.json` runs `.github/workflows/desktop-release.yml`, which builds Windows and macOS (arm64 + x64) with their `tudi-cli` and publishes them to GitHub Releases; installed copies update from there in the background.
+
 The VS Code extension (until it is on the Marketplace and Open VSX, set `TUDI_VSIX` to the built `.vsix` and Tudi Desktop installs that):
 
 ```sh

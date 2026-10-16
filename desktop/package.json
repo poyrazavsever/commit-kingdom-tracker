@@ -11,11 +11,94 @@
     "build": "tsc -p .",
     "build:cli": "node scripts/build-cli.mjs",
     "start": "tsc -p . && electron .",
-    "test": "tsc -p . && node --test out/test/signIn.test.js out/test/mood.test.js out/test/setup.test.js"
+    "test": "tsc -p . && node --test out/test/signIn.test.js out/test/mood.test.js out/test/setup.test.js",
+    "dist": "tsc -p . && electron-builder",
+    "dist:dir": "tsc -p . && electron-builder --dir"
   },
   "devDependencies": {
     "@types/node": "22.20.4",
     "electron": "44.5.1",
+    "electron-builder": "26.15.3",
     "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9"
+  },
+  "author": {
+    "name": "Tudi Daily",
+    "email": "merhaba@tudidaily.com"
+  },
+  "homepage": "https://tudidaily.com/tracker",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/poyrazavsever/tudi-tracker"
+  },
+  "build": {
+    "appId": "com.tudidaily.desktop",
+    "productName": "Tudi Desktop",
+    "copyright": "Copyright (c) 2026 Tudi Daily",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**",
+      "!out/test/**",
+      "static/**",
+      "assets/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/bin/${platform}-${arch}",
+        "to": "bin/${platform}-${arch}"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "TudiDesktop-Setup-${version}.${ext}",
+      "shortcutName": "Tudi Desktop",
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "hardenedRuntime": true,
+      "artifactName": "TudiDesktop-${version}-${arch}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "poyrazavsever",
+        "repo": "tudi-tracker",
+        "releaseType": "release"
+      }
+    ]
   }
 }
