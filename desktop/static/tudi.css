@@ -34,7 +34,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-main { display: flex; flex-direction: column; gap: 12px; padding: 20px; height: 100vh; }
+main { display: flex; flex-direction: column; gap: 16px; padding: 24px 28px 28px; height: 100vh; overflow: hidden; }
 .spacer { flex: 1; }
 
 /* screenTitle */
@@ -42,11 +42,24 @@ h1 { margin: 0; font: 700 22px/28px 'Baloo 2', sans-serif; }
 /* cardTitle */
 h2 { margin: 0; font: 800 17px/22px 'Nunito', sans-serif; }
 
-/* StateBlock: art, title, body, centred */
-.state { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; margin-top: 36px; }
-.state img { width: 150px; height: auto; margin-bottom: 8px; }
-.state h1 { font: 800 28px/34px 'Baloo 2', sans-serif; }
-.state p { margin: 0; color: var(--ink-muted); max-width: 300px; }
+/* Signed out and waiting: StateBlock laid out wide, the art beside the words */
+main.signedOut, main.waiting { justify-content: center; }
+.welcome { display: flex; align-items: center; gap: 40px; padding: 0 24px; }
+.welcome img { width: 240px; height: auto; flex: none; }
+.welcome-text { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.welcome-text h1 { font: 800 28px/34px 'Baloo 2', sans-serif; }
+.welcome-text p { margin: 0; color: var(--ink-muted); max-width: 340px; }
+.welcome-text .button { min-width: 220px; margin-top: 8px; }
+.welcome-text .dots { justify-content: flex-start; }
+
+/* Signed in: the title and this computer's name on one line, then two columns */
+.top { display: flex; align-items: center; gap: 24px; }
+.top h1 { flex: 1; }
+.device { display: flex; align-items: center; gap: 8px; width: 380px; }
+.device .label { white-space: nowrap; color: var(--ink-muted); }
+.columns { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.col { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; }
 
 /* Card: white face, 2 px border, one dark rail under it, no ambient shadow */
 .card {
@@ -54,14 +67,14 @@ h2 { margin: 0; font: 800 17px/22px 'Nunito', sans-serif; }
   border: 2px solid var(--border);
   border-radius: 18px;
   box-shadow: 0 var(--rail) 0 var(--border);
-  padding: 12px 16px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: var(--rail);
 }
 
-/* TudiButton: face + 2 px border + rail, highlight band, Baloo 2 ExtraBold */
+/* TudiButton: flat face + 2 px border + rail, Baloo 2 ExtraBold; no highlight band (UI Standardı v1 §4) */
 .button {
   position: relative;
   overflow: hidden;
@@ -78,18 +91,8 @@ h2 { margin: 0; font: 800 17px/22px 'Nunito', sans-serif; }
   cursor: pointer;
   transition: transform 80ms ease-out, box-shadow 80ms ease-out;
 }
-.button::before {
-  content: '';
-  position: absolute;
-  left: 6px; right: 6px; top: 3px;
-  height: 40%;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.22);
-  pointer-events: none;
-}
 .button:active { transform: translateY(var(--rail)); box-shadow: 0 0 0 var(--aqua-deep); }
 .button.secondary { background: var(--surface); border-color: var(--border); box-shadow: 0 var(--rail) 0 var(--border); }
-.button.secondary::before { display: none; }
 .button.secondary:active { box-shadow: 0 0 0 var(--border); }
 .button.small { min-height: 44px; border-radius: 12px; font-size: 16px; line-height: 20px; letter-spacing: 0.5px; }
 .button:focus-visible, .field:focus-visible { outline: 3px solid var(--aqua); outline-offset: 2px; }
@@ -164,10 +167,14 @@ h2 { margin: 0; font: 800 17px/22px 'Nunito', sans-serif; }
 
 /* Last 7 days: aqua bars with a rail, today in the deeper aqua */
 .card.grow { flex: 1 1 auto; min-height: 0; }
-.week { flex: 1; min-height: 40px; max-height: 96px; display: flex; align-items: flex-end; gap: 8px; }
-.day { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; }
+.week { flex: 1; min-height: 0; display: flex; align-items: flex-end; gap: 10px; padding-top: 4px; }
+.day { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; }
+.day .minutes { font: 800 13px/16px 'Baloo 2', sans-serif; color: var(--ink-muted); }
+.day.today .minutes { color: var(--ink); }
+.day.empty .minutes { visibility: hidden; }
 .day .bar {
   width: 100%;
+  max-height: calc(100% - 44px);
   min-height: 6px;
   border-radius: 8px 8px 4px 4px;
   background: var(--aqua);
@@ -182,16 +189,18 @@ h2 { margin: 0; font: 800 17px/22px 'Nunito', sans-serif; }
 @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 
 /* Editors: name on the left, a Badge or a small button on the right */
-.editor { display: flex; align-items: center; gap: 8px; min-height: 48px; }
+.editor { display: flex; align-items: center; gap: 8px; min-height: 52px; border-top: 2px solid var(--disabled); }
+.card-head + .editor { border-top: 0; }
 .editor-name { flex: 1; font: 700 16px/24px 'Nunito', sans-serif; }
 .editor .button { margin-bottom: var(--rail); }
 .button:disabled { background: var(--disabled); border-color: var(--border); box-shadow: 0 var(--rail) 0 var(--border); color: #8a9ba6; cursor: default; }
-.button:disabled::before { display: none; }
 .muted { margin: 0; color: var(--ink-muted); font: 600 15px/20px 'Nunito', sans-serif; }
 
 /* Badge: read-only pill, no rail */
 .badge { border: 2px solid; border-radius: 999px; padding: 2px 10px; font: 800 14px/18px 'Nunito', sans-serif; color: var(--ink); }
-.badges { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; border-top: 2px solid var(--disabled); }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.week + .badges { padding-top: 8px; border-top: 2px solid var(--disabled); }
+.badge.info { background: var(--sky-soft); border-color: var(--sky-deep); }
 .badge.success { background: var(--aqua-soft); border-color: var(--aqua-deep); }
 
 /* Notice: tinted surface, 2 px border in the tone's deep colour */

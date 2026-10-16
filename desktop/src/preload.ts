@@ -9,5 +9,6 @@ contextBridge.exposeInMainWorld('tudi', {
   signOut: () => ipcRenderer.invoke('sign-out'),
   openApp: () => ipcRenderer.invoke('open-app'),
   installExtension: (id: string) => ipcRenderer.invoke('install-extension', id),
+  installAll: () => ipcRenderer.invoke('install-all'),
   onState: (listener: (state: unknown) => void) => ipcRenderer.on('state', (_event, state) => listener(state)),
 });

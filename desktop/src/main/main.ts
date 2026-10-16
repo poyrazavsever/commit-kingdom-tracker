@@ -83,6 +83,7 @@ function registerIpc(): void {
   ipcMain.handle('sign-out', () => signOut());
   ipcMain.handle('open-app', () => shell.openExternal(appUrl));
   ipcMain.handle('install-extension', (_event, id: unknown) => installInto(id));
+  ipcMain.handle('install-all', () => installAll());
 }
 
 async function startSignIn(): Promise<void> {
@@ -135,7 +136,16 @@ async function refreshEditors(force = false): Promise<void> {
   set({ editors: found.map(({ id, name, hasExtension }) => ({ id, name, hasExtension, installing: installing.has(id) })) });
 }
 
-async function installInto(id: unknown): Promise<void> {
+/**
+ * Every editor keeps its own extensions, so each needs the extension once; this does them one after another (two
+ * editor installers at once can trip over the shared download cache).
+ */
+async function installAll(): Promise<void> {
+  for (const editor of (view.editors ?? []).filter(item => !item.hasExtension && !item.installing)) await installInto(editor.id, false);
+  await refreshEditors(true);
+}
+
+async function installInto(id: unknown, refreshAfter = true): Promise<void> {
   const editor = editorCandidates().find(candidate => candidate.id === id);
   if (!editor || !view.editors) return;
   const mark = (installing: boolean) => set({ editors: (view.editors ?? []).map(item => (item.id === editor.id ? { ...item, installing } : item)) });
@@ -147,7 +157,7 @@ async function installInto(id: unknown): Promise<void> {
     set({ error: 'install' });
   }
   mark(false);
-  await refreshEditors(true);
+  if (refreshAfter) await refreshEditors(true);
 }
 
 async function refresh(): Promise<void> {
@@ -237,8 +247,10 @@ function toggleMascot(show: boolean): void {
 function showWindow(): void {
   if (!window) {
     window = new BrowserWindow({
-      width: 380,
-      height: 680,
+      // The content area itself (useContentSize): the frame and title bar never eat into it, so nothing scrolls.
+      width: 820,
+      height: 540,
+      useContentSize: true,
       resizable: false,
       maximizable: false,
       fullscreenable: false,
