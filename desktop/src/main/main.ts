@@ -5,6 +5,9 @@ import { DesktopApi, KeyRevoked, type Summary } from './api';
 import { clearCliKey, cliKey, cliPaths, markAiStart, writeCliKey } from './cliConfig';
 import { apiUrl, appUrl, DEFAULT_API_URL, heartbeatApiUrl } from './config';
 import { forgetDevice, loadDevice, saveDevice } from './keyStore';
+import { Mascot } from './mascot';
+import { CHEER_MS, type Mood, moodOf, shouldCheer } from './mood';
+import { loadSettings, saveSettings, type Settings } from './settings';
 import { type Device, signIn, SignInCancelled } from './signIn';
 
 /** What the window shows; the renderer only draws it (static/renderer.js). */
@@ -17,7 +20,10 @@ type View = {
 };
 
 const REFRESH_MS = 60_000;
+/** Moods follow the clock between refreshes (watching → waiting → asleep). */
+const MOOD_TICK_MS = 15_000;
 const paths = cliPaths();
+const mascot = new Mascot();
 
 let window: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -25,6 +31,8 @@ let device: Device | null = null;
 let signInAbort: AbortController | null = null;
 let refreshTimer: NodeJS.Timeout | null = null;
 let quitting = false;
+let settings: Settings;
+let cheerUntil = 0;
 const view: View = { phase: 'signedOut', locale: 'en', deviceName: '', summary: null, error: null };
 
 if (!app.requestSingleInstanceLock()) {
@@ -41,6 +49,7 @@ if (!app.requestSingleInstanceLock()) {
 
 function start(): void {
   view.locale = app.getLocale().toLowerCase().startsWith('tr') ? 'tr' : 'en';
+  settings = loadSettings();
   if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: true });
   if (process.platform === 'darwin') app.dock?.hide();
 
@@ -55,6 +64,7 @@ function start(): void {
   registerIpc();
   createTray();
   showWindow();
+  setInterval(updateMascot, MOOD_TICK_MS);
 }
 
 function registerIpc(): void {
@@ -102,6 +112,7 @@ async function refresh(): Promise<void> {
   if (!device) return;
   try {
     const summary = await new DesktopApi(apiUrl, device.apiKey).summary();
+    if (view.summary && shouldCheer(view.summary, summary)) cheerUntil = Date.now() + CHEER_MS;
     if (summary.deviceName !== device.name) {
       device = { ...device, name: summary.deviceName };
       saveDevice(device);
@@ -154,6 +165,29 @@ function cliApiUrl(): string | null {
 function set(change: Partial<View>): void {
   Object.assign(view, change);
   window?.webContents.send('state', view);
+  updateTray();
+  updateMascot();
+}
+
+/** Tudi stays on screen while this computer is signed in and the member has not hidden it. */
+function updateMascot(): void {
+  if (!settings) return;
+  if (view.phase !== 'signedIn' || !settings.showMascot) return mascot.hide();
+  const cheering = Date.now() < cheerUntil;
+  const mood: Mood = cheering ? 'cheering' : moodOf(view.summary?.lastHeartbeatAt, new Date());
+  if (cheering) setTimeout(updateMascot, cheerUntil - Date.now() + 20);
+  const intro = !settings.mascotIntroSeen;
+  mascot.show({ mood, intro, locale: view.locale });
+  if (intro) {
+    settings = { ...settings, mascotIntroSeen: true };
+    saveSettings(settings);
+  }
+}
+
+function toggleMascot(show: boolean): void {
+  settings = { ...settings, showMascot: show };
+  saveSettings(settings);
+  updateMascot();
   updateTray();
 }
 
@@ -208,6 +242,7 @@ function updateTray(): void {
       { type: 'separator' },
       { label: tr ? 'Tudi Desktop’ı aç' : 'Open Tudi Desktop', click: showWindow },
       { label: tr ? 'Tudi Daily’yi aç' : 'Open Tudi Daily', click: () => void shell.openExternal(appUrl) },
+      { label: tr ? 'Ekranda Tudi' : 'Tudi on screen', type: 'checkbox', checked: settings?.showMascot ?? true, enabled: view.phase === 'signedIn', click: item => toggleMascot(item.checked) },
       { type: 'separator' },
       { label: tr ? 'Çık' : 'Quit', click: () => app.quit() },
     ]),

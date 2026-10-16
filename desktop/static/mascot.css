@@ -1,0 +1,116 @@
+/* The always-on-top Tudi. Motion follows Rehber - Ekrandan Ürüne §4: 200 ms mood fades, a celebration under 1.5 s,
+   loops slow and small, and nothing moves when the system asks for reduced motion. */
+@font-face { font-family: 'Nunito'; font-weight: 200 1000; src: url('fonts/nunito.woff2') format('woff2'); }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; }
+.stage { position: relative; height: 100%; }
+
+.tudi {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  width: 128px;
+  height: 128px;
+  transform-origin: 50% 100%;
+  animation: arrive 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.body { position: absolute; inset: 0; transform-origin: 50% 100%; }
+.body img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+[data-mood='watching'] .body img[data-mood='watching'],
+[data-mood='waiting'] .body img[data-mood='waiting'],
+[data-mood='sleeping'] .body img[data-mood='sleeping'],
+[data-mood='cheering'] .body img[data-mood='cheering'] { opacity: 1; }
+
+/* Watching: quick little typing bob. */
+[data-mood='watching'] .body { animation: type 520ms ease-in-out infinite; }
+@keyframes type { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+/* Waiting: a slow sway while it thinks. */
+[data-mood='waiting'] .body { animation: sway 3.2s ease-in-out infinite; }
+@keyframes sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+
+/* Sleeping: breathing, and sky bubbles drifting up from its head. */
+[data-mood='sleeping'] .body { animation: breathe 3.6s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.02, 0.96); } }
+.sleep-bubbles { position: absolute; left: 8px; top: -38px; width: 40px; height: 60px; opacity: 0; transition: opacity 200ms; }
+[data-mood='sleeping'] .sleep-bubbles { opacity: 1; }
+.sleep-bubbles i {
+  position: absolute;
+  bottom: 0;
+  left: 18px;
+  border-radius: 50%;
+  background: #56bceb;
+  box-shadow: inset -2px -2px 0 rgba(16, 43, 63, 0.18), inset 2px 2px 0 rgba(255, 255, 255, 0.55);
+  opacity: 0;
+  animation: rise 3.6s ease-out infinite;
+}
+.sleep-bubbles i:nth-child(1) { width: 8px; height: 8px; }
+.sleep-bubbles i:nth-child(2) { width: 11px; height: 11px; animation-delay: 1.2s; }
+.sleep-bubbles i:nth-child(3) { width: 15px; height: 15px; animation-delay: 2.4s; }
+@keyframes rise {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-14px, -52px) scale(1); }
+}
+
+/* Cheering: two hops with a squash on landing, 1.5 s in all. */
+[data-mood='cheering'] .body { animation: hop 750ms cubic-bezier(0.3, 0, 0.3, 1) 2; }
+@keyframes hop {
+  0% { transform: translateY(0) scale(1, 1); }
+  15% { transform: translateY(0) scale(1.08, 0.9); }
+  45% { transform: translateY(-26px) scale(0.95, 1.06); }
+  80% { transform: translateY(0) scale(1.06, 0.92); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+
+/* Arrival: rises from below the taskbar edge with a small overshoot. */
+@keyframes arrive { from { transform: translateY(150px); } to { transform: translateY(0); } }
+
+/* SpeechBubble (design system): white card, 2 px border, tail toward Tudi. */
+.bubble {
+  position: absolute;
+  right: 22px;
+  bottom: 142px;
+  width: 212px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border: 2px solid #c8d8de;
+  border-radius: 18px;
+  font: 700 15px/20px 'Nunito', sans-serif;
+  color: #102b3f;
+  opacity: 0;
+  transform: translateY(6px) scale(0.96);
+  transform-origin: 80% 100%;
+  transition: opacity 240ms ease-out, transform 240ms ease-out;
+}
+.bubble p { margin: 0; }
+.bubble.on { opacity: 1; transform: none; }
+.bubble .tail {
+  position: absolute;
+  right: 44px;
+  bottom: -9px;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-right: 2px solid #c8d8de;
+  border-bottom: 2px solid #c8d8de;
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  [data-mood='sleeping'] .sleep-bubbles i { opacity: 1; }
+  .sleep-bubbles i:nth-child(1) { transform: translate(-4px, -10px); }
+  .sleep-bubbles i:nth-child(2) { transform: translate(-9px, -26px); }
+  .sleep-bubbles i:nth-child(3) { transform: translate(-14px, -46px); }
+}

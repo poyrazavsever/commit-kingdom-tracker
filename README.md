@@ -10,7 +10,7 @@ This repository is open so you can check exactly what is sent.
 
 | Folder | What |
 |---|---|
-| `desktop/` | Tudi Desktop (Electron, MIT): signs this computer in with your Tudi Daily account and shows today's coding |
+| `desktop/` | Tudi Desktop (Electron, MIT): signs this computer in with your Tudi Daily account, shows today's coding and keeps a small Tudi on screen that watches, waits, naps and cheers with you |
 | `cli/` | `tudi-cli`, a fork of [wakatime-cli](https://github.com/wakatime/wakatime-cli) (BSD-3-Clause) pointed at Tudi Daily, with an always-on privacy step |
 | `vscode/` | The extension for the VS Code family (VS Code, Cursor, Windsurf, VSCodium) |
 
