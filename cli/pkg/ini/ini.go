@@ -26,7 +26,7 @@ type WakaHomeType int
 
 const (
 	// defaultFolder is the name of the default wakatime resources folder.
-	defaultFolder = ".wakatime"
+	defaultFolder = ".tudi" // tudi-tracker: its own folder, so its offline queue and state never mix with WakaTime's
 	// defaultFile is the name of the default wakatime config file.
 	defaultFile = ".tudi.cfg" // tudi-tracker: its own file, so a WakaTime setup on the same computer is untouched
 	// defaultInternalFile is the name of the default wakatime internal config file.
