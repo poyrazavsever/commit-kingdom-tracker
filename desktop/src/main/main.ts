@@ -3,7 +3,9 @@ import { join } from 'node:path';
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell, Tray } from 'electron';
 import { DesktopApi, KeyRevoked, type Summary } from './api';
 import { clearCliKey, cliKey, cliPaths, markAiStart, writeCliKey } from './cliConfig';
+import { bundledCli, ensureCli } from './cliInstall';
 import { apiUrl, appUrl, DEFAULT_API_URL, heartbeatApiUrl } from './config';
+import { editorCandidates, type EditorId, findEditors, installExtension } from './editors';
 import { forgetDevice, loadDevice, saveDevice } from './keyStore';
 import { Mascot } from './mascot';
 import { CHEER_MS, type Mood, moodOf, shouldCheer } from './mood';
@@ -16,7 +18,9 @@ type View = {
   locale: 'tr' | 'en';
   deviceName: string;
   summary: Summary | null;
-  error: 'signIn' | 'offline' | 'keyStore' | 'rename' | null;
+  /** The VS Code family editors on this computer; null until they have been looked for. */
+  editors: { id: EditorId; name: string; hasExtension: boolean; installing: boolean }[] | null;
+  error: 'signIn' | 'offline' | 'keyStore' | 'rename' | 'install' | 'cli' | null;
 };
 
 const REFRESH_MS = 60_000;
@@ -33,7 +37,10 @@ let refreshTimer: NodeJS.Timeout | null = null;
 let quitting = false;
 let settings: Settings;
 let cheerUntil = 0;
-const view: View = { phase: 'signedOut', locale: 'en', deviceName: '', summary: null, error: null };
+const view: View = { phase: 'signedOut', locale: 'en', deviceName: '', summary: null, editors: null, error: null };
+/** Editors are looked for again when the window comes back, at most this often (each look starts every editor's CLI). */
+const EDITORS_EVERY_MS = 2 * 60_000;
+let editorsAt = 0;
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -53,6 +60,7 @@ function start(): void {
   if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: true });
   if (process.platform === 'darwin') app.dock?.hide();
 
+  installCli();
   device = loadDevice();
   if (device) {
     // The key lives here; tudi-cli's copy is put back if the member deleted or edited the config.
@@ -74,6 +82,7 @@ function registerIpc(): void {
   ipcMain.handle('rename', (_event, name: unknown) => rename(typeof name === 'string' ? name : ''));
   ipcMain.handle('sign-out', () => signOut());
   ipcMain.handle('open-app', () => shell.openExternal(appUrl));
+  ipcMain.handle('install-extension', (_event, id: unknown) => installInto(id));
 }
 
 async function startSignIn(): Promise<void> {
@@ -95,6 +104,7 @@ async function startSignIn(): Promise<void> {
     saveDevice(signed);
     writeCliKey(paths, signed.apiKey, cliApiUrl());
     markAiStart(paths, new Date());
+    installCli();
     device = signed;
     set({ phase: 'signedIn', deviceName: signed.name, summary: null });
     showWindow();
@@ -105,6 +115,39 @@ async function startSignIn(): Promise<void> {
   } finally {
     signInAbort = null;
   }
+}
+
+/** tudi-cli comes with Tudi Desktop; the copy the editors use is kept the same as the one in the app. */
+function installCli(): void {
+  const resources = app.isPackaged ? process.resourcesPath : join(__dirname, '..', '..', 'resources');
+  try {
+    if (ensureCli(bundledCli(resources), paths.cli) === 'missing') set({ error: 'cli' });
+  } catch {
+    set({ error: 'cli' });
+  }
+}
+
+async function refreshEditors(force = false): Promise<void> {
+  if (!force && Date.now() - editorsAt < EDITORS_EVERY_MS) return;
+  editorsAt = Date.now();
+  const found = await findEditors();
+  const installing = new Set((view.editors ?? []).filter(editor => editor.installing).map(editor => editor.id));
+  set({ editors: found.map(({ id, name, hasExtension }) => ({ id, name, hasExtension, installing: installing.has(id) })) });
+}
+
+async function installInto(id: unknown): Promise<void> {
+  const editor = editorCandidates().find(candidate => candidate.id === id);
+  if (!editor || !view.editors) return;
+  const mark = (installing: boolean) => set({ editors: (view.editors ?? []).map(item => (item.id === editor.id ? { ...item, installing } : item)) });
+  mark(true);
+  try {
+    await installExtension(editor);
+    if (view.error === 'install') set({ error: null });
+  } catch {
+    set({ error: 'install' });
+  }
+  mark(false);
+  await refreshEditors(true);
 }
 
 async function refresh(): Promise<void> {
@@ -195,7 +238,7 @@ function showWindow(): void {
   if (!window) {
     window = new BrowserWindow({
       width: 380,
-      height: 600,
+      height: 680,
       resizable: false,
       maximizable: false,
       fullscreenable: false,
@@ -208,6 +251,7 @@ function showWindow(): void {
     window.removeMenu();
     window.loadFile(join(__dirname, '..', '..', 'static', 'index.html'));
     window.once('ready-to-show', () => window?.show());
+    window.on('show', () => void refreshEditors());
     window.on('close', event => {
       if (quitting) return;
       event.preventDefault();
@@ -219,6 +263,7 @@ function showWindow(): void {
       return { action: 'deny' };
     });
     window.webContents.on('will-navigate', event => event.preventDefault());
+    void refreshEditors(true);
     return;
   }
   window.show();

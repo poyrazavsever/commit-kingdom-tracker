@@ -18,7 +18,14 @@
       openApp: 'Open the app',
       signOut: 'Sign out',
       min: 'min',
+      editors: 'Editors',
+      install: 'Install',
+      installing: 'Installing…',
+      installed: 'Installed',
+      noEditors: 'No VS Code, Cursor, Windsurf, VSCodium or Antigravity found on this computer.',
       errors: {
+        install: 'The extension could not be installed. Try again.',
+        cli: 'Tudi’s tracker could not be set up on this computer. Reinstall Tudi Desktop.',
         signIn: 'The sign-in did not finish. Try again.',
         offline: 'Tudi Daily cannot be reached. Your coding is kept and sent later.',
         keyStore: 'This computer has no secure key store, so Tudi Desktop cannot keep your sign-in.',
@@ -42,7 +49,14 @@
       openApp: 'Uygulamayı aç',
       signOut: 'Çıkış yap',
       min: 'dk',
+      editors: 'Editörler',
+      install: 'Kur',
+      installing: 'Kuruluyor…',
+      installed: 'Kurulu',
+      noEditors: 'Bu bilgisayarda VS Code, Cursor, Windsurf, VSCodium ya da Antigravity bulunamadı.',
       errors: {
+        install: 'Eklenti kurulamadı. Yeniden dene.',
+        cli: 'Tudi’nin sayacı bu bilgisayara kurulamadı. Tudi Desktop’ı yeniden kur.',
         signIn: 'Giriş tamamlanmadı. Yeniden dene.',
         offline: 'Tudi Daily’ye ulaşılamıyor. Kodun saklanıyor, sonra gönderilecek.',
         keyStore: 'Bu bilgisayarda güvenli anahtar deposu yok; Tudi Desktop girişini saklayamıyor.',
@@ -121,6 +135,29 @@
       return node;
     };
 
+    // While setup is unfinished (an editor without the extension, or none found) the editors take the week's place,
+    // one row each; afterwards they shrink to a line of badges under the week, so the window never scrolls.
+    const setup = state.editors !== null && (state.editors.length === 0 || state.editors.some(editor => !editor.hasExtension));
+    const editors = !setup
+      ? null
+      : el(
+            'div',
+            { className: 'card' },
+            el('h2', {}, t.editors),
+            ...(state.editors.length === 0
+              ? [el('p', { className: 'muted' }, t.noEditors)]
+              : state.editors.map(editor =>
+                  el(
+                    'div',
+                    { className: 'editor' },
+                    el('span', { className: 'editor-name' }, editor.name),
+                    editor.hasExtension
+                      ? el('span', { className: 'badge success' }, t.installed)
+                      : el('button', { className: 'button small', disabled: editor.installing, onclick: () => window.tudi.installExtension(editor.id) }, editor.installing ? t.installing : t.install),
+                  ),
+                )),
+          );
+
     const focused = typing !== null;
     show(
       error ?? el('h1', {}, t.title),
@@ -140,26 +177,32 @@
         ),
         120,
       ),
-      delay(
-        el(
-          'div',
-          { className: 'card grow' },
-          el('h2', {}, t.week),
-          el(
-            'div',
-            { className: 'week' },
-            ...week.map((day, index) =>
+      editors ? delay(editors, 180) : null,
+      editors
+        ? null
+        : delay(
+            el(
+              'div',
+              { className: 'card grow' },
+              el('h2', {}, t.week),
               el(
                 'div',
-                { className: `day${index === week.length - 1 ? ' today' : ''}${day.weightedMinutes < 1 ? ' empty' : ''}`, title: `${Math.floor(day.weightedMinutes)} ${t.min}` },
-                el('div', { className: 'bar', style: `height:${Math.max(6, (day.weightedMinutes / tallest) * 100)}%;animation-delay:${200 + index * 40}ms` }),
-                el('span', {}, weekday.format(new Date(`${day.date}T00:00:00Z`))),
+                { className: 'week' },
+                ...week.map((day, index) =>
+                  el(
+                    'div',
+                    { className: `day${index === week.length - 1 ? ' today' : ''}${day.weightedMinutes < 1 ? ' empty' : ''}`, title: `${Math.floor(day.weightedMinutes)} ${t.min}` },
+                    el('div', { className: 'bar', style: `height:${Math.max(6, (day.weightedMinutes / tallest) * 100)}%;animation-delay:${200 + index * 40}ms` }),
+                    el('span', {}, weekday.format(new Date(`${day.date}T00:00:00Z`))),
+                  ),
+                ),
               ),
+              state.editors && state.editors.length > 0
+                ? el('div', { className: 'badges', ariaLabel: t.editors }, ...state.editors.map(editor => el('span', { className: 'badge success' }, editor.name)))
+                : null,
             ),
+            240,
           ),
-        ),
-        180,
-      ),
       el('div', { className: 'actions' }, button(t.signOut, () => window.tudi.signOut(), 'secondary'), button(t.openApp, () => window.tudi.openApp())),
     );
     if (focused) name.focus();

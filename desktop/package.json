@@ -9,8 +9,9 @@
   "scripts": {
     "postinstall": "install-electron --no",
     "build": "tsc -p .",
+    "build:cli": "node scripts/build-cli.mjs",
     "start": "tsc -p . && electron .",
-    "test": "tsc -p . && node --test out/test/signIn.test.js out/test/mood.test.js"
+    "test": "tsc -p . && node --test out/test/signIn.test.js out/test/mood.test.js out/test/setup.test.js"
   },
   "devDependencies": {
     "@types/node": "22.20.4",
