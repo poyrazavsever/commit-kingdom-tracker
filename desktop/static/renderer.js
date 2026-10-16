@@ -104,7 +104,7 @@
       return node;
     };
 
-    // Signed out and waiting: the laptop on the left, the words and the one action on the right.
+    // Signed out and waiting: the laptop on top, the centred title and words, the one action at the bottom.
     if (state.phase !== 'signedIn') {
       const waiting = state.phase === 'waiting';
       show(
@@ -112,16 +112,12 @@
           'div',
           { className: 'welcome appear' },
           el('img', { src: 'art/tracker-laptop.webp', alt: '' }),
-          el(
-            'div',
-            { className: 'welcome-text' },
-            el('h1', {}, waiting ? t.waitingTitle : t.title),
-            el('p', {}, waiting ? t.waitingBody : t.signedOutBody),
-            waiting ? el('div', { className: 'dots', ariaHidden: true }, el('i'), el('i'), el('i')) : null,
-            error,
-            waiting ? button(t.cancel, () => window.tudi.cancelSignIn(), 'secondary') : button(t.signIn, () => window.tudi.signIn()),
-          ),
+          el('h1', {}, waiting ? t.waitingTitle : t.title),
+          el('p', {}, waiting ? t.waitingBody : t.signedOutBody),
+          waiting ? el('div', { className: 'dots', ariaHidden: true }, el('i'), el('i'), el('i')) : null,
+          error,
         ),
+        el('div', { className: 'welcome-action' }, waiting ? button(t.cancel, () => window.tudi.cancelSignIn(), 'secondary') : button(t.signIn, () => window.tudi.signIn())),
       );
       return;
     }
@@ -162,6 +158,7 @@
                 el(
                   'div',
                   { className: 'editor' },
+                  editor.icon ? el('img', { className: 'editor-icon', src: editor.icon, alt: '' }) : el('span', { className: 'editor-icon blank' }),
                   el('span', { className: 'editor-name' }, editor.name),
                   editor.hasExtension
                     ? el('span', { className: 'badge success' }, t.installed)
@@ -188,7 +185,7 @@
               ),
             ),
           ),
-          editors.length > 0 ? el('div', { className: 'badges', ariaLabel: t.editors }, ...editors.map(editor => el('span', { className: 'badge success' }, editor.name))) : null,
+          editors.length > 0 ? el('div', { className: 'badges', ariaLabel: t.editors }, ...editors.map(editor => el('span', { className: 'badge success with-icon' }, editor.icon ? el('img', { src: editor.icon, alt: '' }) : null, editor.name))) : null,
         );
 
     const focused = typing !== null;

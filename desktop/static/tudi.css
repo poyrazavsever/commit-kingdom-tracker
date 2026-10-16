@@ -42,15 +42,14 @@ h1 { margin: 0; font: 700 22px/28px 'Baloo 2', sans-serif; }
 /* cardTitle */
 h2 { margin: 0; font: 800 17px/22px 'Nunito', sans-serif; }
 
-/* Signed out and waiting: StateBlock laid out wide, the art beside the words */
-main.signedOut, main.waiting { justify-content: center; }
-.welcome { display: flex; align-items: center; gap: 40px; padding: 0 24px; }
-.welcome img { width: 240px; height: auto; flex: none; }
-.welcome-text { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
-.welcome-text h1 { font: 800 28px/34px 'Baloo 2', sans-serif; }
-.welcome-text p { margin: 0; color: var(--ink-muted); max-width: 340px; }
-.welcome-text .button { min-width: 220px; margin-top: 8px; }
-.welcome-text .dots { justify-content: flex-start; }
+/* Signed out and waiting: StateBlock, centred: art on top, title and words, the action at the bottom */
+.welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; }
+.welcome img { width: 200px; height: auto; margin-bottom: 12px; }
+.welcome h1 { font: 800 30px/36px 'Baloo 2', sans-serif; }
+.welcome p { margin: 0; color: var(--ink-muted); max-width: 420px; }
+.welcome .notice { margin-top: 8px; }
+.welcome-action { display: flex; justify-content: center; }
+.welcome-action .button { width: 360px; }
 
 /* Signed in: the title and this computer's name on one line, then two columns */
 .top { display: flex; align-items: center; gap: 24px; }
@@ -192,6 +191,10 @@ main.signedOut, main.waiting { justify-content: center; }
 .editor { display: flex; align-items: center; gap: 8px; min-height: 52px; border-top: 2px solid var(--disabled); }
 .card-head + .editor { border-top: 0; }
 .editor-name { flex: 1; font: 700 16px/24px 'Nunito', sans-serif; }
+.editor-icon { width: 28px; height: 28px; flex: none; object-fit: contain; border-radius: 6px; }
+.editor-icon.blank { border-radius: 8px; background: var(--disabled); }
+.badge.with-icon { display: inline-flex; align-items: center; gap: 6px; padding-left: 6px; }
+.badge.with-icon img { width: 18px; height: 18px; border-radius: 4px; }
 .editor .button { margin-bottom: var(--rail); }
 .button:disabled { background: var(--disabled); border-color: var(--border); box-shadow: 0 var(--rail) 0 var(--border); color: #8a9ba6; cursor: default; }
 .muted { margin: 0; color: var(--ink-muted); font: 600 15px/20px 'Nunito', sans-serif; }

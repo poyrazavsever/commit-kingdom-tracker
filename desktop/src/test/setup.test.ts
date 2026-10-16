@@ -36,6 +36,7 @@ test('editors are found by install location, and the extension is looked for in 
   }
   const candidates = editorCandidates('win32', { LOCALAPPDATA: local, ProgramFiles: join(local, 'none') }, local);
   assert.deepEqual(candidates.map(editor => [editor.id, editor.cli]), [['vscode', vscode], ['cursor', cursor]]);
+  assert.deepEqual(candidates.map(editor => editor.app), [join(local, 'Programs', 'Microsoft VS Code', 'Code.exe'), join(local, 'Programs', 'cursor', 'Cursor.exe')]);
 
   const calls: string[][] = [];
   const run = async (cli: string, args: string[]) => {

@@ -5,6 +5,7 @@ import { DesktopApi, KeyRevoked, type Summary } from './api';
 import { clearCliKey, cliKey, cliPaths, markAiStart, writeCliKey } from './cliConfig';
 import { bundledCli, ensureCli } from './cliInstall';
 import { apiUrl, appUrl, DEFAULT_API_URL, heartbeatApiUrl } from './config';
+import { editorIcon } from './editorIcons';
 import { editorCandidates, type EditorId, findEditors, installExtension } from './editors';
 import { forgetDevice, loadDevice, saveDevice } from './keyStore';
 import { Mascot } from './mascot';
@@ -19,7 +20,7 @@ type View = {
   deviceName: string;
   summary: Summary | null;
   /** The VS Code family editors on this computer; null until they have been looked for. */
-  editors: { id: EditorId; name: string; hasExtension: boolean; installing: boolean }[] | null;
+  editors: { id: EditorId; name: string; icon: string | null; hasExtension: boolean; installing: boolean }[] | null;
   error: 'signIn' | 'offline' | 'keyStore' | 'rename' | 'install' | 'cli' | null;
 };
 
@@ -133,8 +134,10 @@ async function refreshEditors(force = false): Promise<void> {
   editorsAt = Date.now();
   const found = await findEditors();
   const installing = new Set((view.editors ?? []).filter(editor => editor.installing).map(editor => editor.id));
-  set({ editors: found.map(({ id, name, hasExtension }) => ({ id, name, hasExtension, installing: installing.has(id) })) });
+  const icons = await Promise.all(found.map(editor => editorIcon(editor.app)));
+  set({ editors: found.map(({ id, name, hasExtension }, index) => ({ id, name, icon: icons[index], hasExtension, installing: installing.has(id) })) });
 }
+
 
 /**
  * Every editor keeps its own extensions, so each needs the extension once; this does them one after another (two
