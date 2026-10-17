@@ -24,6 +24,7 @@
       noCodeYet: 'No coding yet today.',
       installing: 'Installing…',
       installed: 'Installed',
+      restartIde: 'Restart the IDE to start counting',
       noEditors: 'No VS Code, Cursor, Windsurf, VSCodium or Antigravity found on this computer.',
       errors: {
         install: 'The extension could not be installed. Try again.',
@@ -57,6 +58,7 @@
       noCodeYet: 'Bugün henüz kod yazılmadı.',
       installing: 'Kuruluyor…',
       installed: 'Kurulu',
+      restartIde: 'Saymaya başlaması için IDE’yi yeniden başlat',
       noEditors: 'Bu bilgisayarda VS Code, Cursor, Windsurf, VSCodium ya da Antigravity bulunamadı.',
       errors: {
         install: 'Eklenti kurulamadı. Yeniden dene.',
@@ -159,7 +161,7 @@
                   'div',
                   { className: 'editor' },
                   editor.icon ? el('img', { className: 'editor-icon', src: editor.icon, alt: '' }) : el('span', { className: 'editor-icon blank' }),
-                  el('span', { className: 'editor-name' }, editor.name),
+                  el('span', { className: 'editor-name' }, editor.name, editor.restart ? el('small', { className: 'editor-note' }, t.restartIde) : null),
                   editor.hasExtension
                     ? el('span', { className: 'badge success' }, t.installed)
                     : editor.installing

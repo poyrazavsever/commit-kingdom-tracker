@@ -6,7 +6,8 @@ import { clearCliKey, cliKey, cliPaths, markAiStart, writeCliKey } from './cliCo
 import { bundledCli, ensureCli } from './cliInstall';
 import { apiUrl, appUrl, DEFAULT_API_URL, heartbeatApiUrl } from './config';
 import { editorIcon } from './editorIcons';
-import { editorCandidates, type EditorId, findEditors, installExtension } from './editors';
+import { editorCandidates, findEditors, installExtension } from './editors';
+import { findJetBrainsIdes, installPlugin } from './jetbrains';
 import { forgetDevice, loadDevice, saveDevice } from './keyStore';
 import { Mascot } from './mascot';
 import { syncDue, syncQueue } from './queue';
@@ -21,8 +22,11 @@ type View = {
   locale: 'tr' | 'en';
   deviceName: string;
   summary: Summary | null;
-  /** The VS Code family editors on this computer; null until they have been looked for. */
-  editors: { id: EditorId; name: string; icon: string | null; hasExtension: boolean; installing: boolean }[] | null;
+  /**
+   * The VS Code family editors and JetBrains IDEs on this computer; null until they have been looked for. `restart`:
+   * a JetBrains IDE loads the plugin the next time it starts.
+   */
+  editors: { id: string; name: string; icon: string | null; hasExtension: boolean; installing: boolean; restart: boolean }[] | null;
   error: 'signIn' | 'offline' | 'keyStore' | 'rename' | 'install' | 'cli' | null;
 };
 
@@ -46,6 +50,8 @@ const view: View = { phase: 'signedOut', locale: 'en', deviceName: '', summary: 
 /** Editors are looked for again when the window comes back, at most this often (each look starts every editor's CLI). */
 const EDITORS_EVERY_MS = 2 * 60_000;
 let editorsAt = 0;
+/** JetBrains IDEs given the plugin in this run: they show a restart note. */
+const restartIds = new Set<string>();
 /** When tudi-cli's offline queue was last sent (queue.ts). */
 let syncedAt = 0;
 
@@ -142,10 +148,22 @@ function installCli(): void {
 async function refreshEditors(force = false): Promise<void> {
   if (!force && Date.now() - editorsAt < EDITORS_EVERY_MS) return;
   editorsAt = Date.now();
-  const found = await findEditors();
+  const found = [
+    ...(await findEditors()).map(({ id, name, app, hasExtension }) => ({ id: id as string, name, app, hasExtension })),
+    ...findJetBrainsIdes().map(({ id, name, app, hasPlugin }) => ({ id: id as string, name, app, hasExtension: hasPlugin })),
+  ];
   const installing = new Set((view.editors ?? []).filter(editor => editor.installing).map(editor => editor.id));
   const icons = await Promise.all(found.map(editor => editorIcon(editor.app)));
-  set({ editors: found.map(({ id, name, hasExtension }, index) => ({ id, name, icon: icons[index], hasExtension, installing: installing.has(id) })) });
+  set({
+    editors: found.map(({ id, name, hasExtension }, index) => ({
+      id,
+      name,
+      icon: icons[index],
+      hasExtension,
+      installing: installing.has(id),
+      restart: hasExtension && restartIds.has(id),
+    })),
+  });
 }
 
 
@@ -160,11 +178,16 @@ async function installAll(): Promise<void> {
 
 async function installInto(id: unknown, refreshAfter = true): Promise<void> {
   const editor = editorCandidates().find(candidate => candidate.id === id);
-  if (!editor || !view.editors) return;
-  const mark = (installing: boolean) => set({ editors: (view.editors ?? []).map(item => (item.id === editor.id ? { ...item, installing } : item)) });
+  const ide = findJetBrainsIdes().find(candidate => candidate.id === id);
+  if ((!editor && !ide) || !view.editors) return;
+  const mark = (installing: boolean) => set({ editors: (view.editors ?? []).map(item => (item.id === id ? { ...item, installing } : item)) });
   mark(true);
   try {
-    await installExtension(editor);
+    if (editor) await installExtension(editor);
+    else if (ide) {
+      await installPlugin(ide);
+      restartIds.add(ide.id);
+    }
     if (view.error === 'install') set({ error: null });
   } catch {
     set({ error: 'install' });
