@@ -16,7 +16,7 @@ public final class TudiListeners {
     public static final class Typing implements DocumentListener {
         @Override
         public void documentChanged(@NotNull DocumentEvent event) {
-            TudiTracker.getInstance().documentChanged(event.getDocument());
+            TudiTracker.getInstance().documentChanged(event.getDocument(), event.getOldFragment(), event.getNewFragment());
         }
     }
 

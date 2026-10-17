@@ -20,5 +20,5 @@ test('a save or another file always sends', () => {
 
 test('the CLI gets the file only as an argument; privacy is the job of the CLI', () => {
   const args = heartbeatArgs('/p/a.ts', true, { cliPath: '', apiUrl: '', plugin: 'vscode/1.95.0 tudi-vscode/0.1.0' });
-  assert.deepEqual(args, ['--entity', '/p/a.ts', '--plugin', 'vscode/1.95.0 tudi-vscode/0.1.0', '--write']);
+  assert.deepEqual(args, ['--entity', '/p/a.ts', '--plugin', 'vscode/1.95.0 tudi-vscode/0.1.0', '--human-line-changes', '0', '--write']);
 });

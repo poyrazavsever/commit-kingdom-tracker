@@ -11,7 +11,7 @@
     "build": "tsc -p .",
     "build:cli": "node scripts/build-cli.mjs",
     "start": "tsc -p . && electron .",
-    "test": "tsc -p . && node --test out/test/signIn.test.js out/test/mood.test.js out/test/setup.test.js",
+    "test": "tsc -p . && node --test out/test/signIn.test.js out/test/mood.test.js out/test/setup.test.js out/test/queue.test.js",
     "dist": "tsc -p . && electron-builder",
     "dist:dir": "tsc -p . && electron-builder --dir"
   },

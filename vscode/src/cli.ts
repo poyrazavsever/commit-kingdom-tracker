@@ -13,8 +13,8 @@ export function findCli(configured: string): string {
   return existsSync(home) ? home : name;
 }
 
-export function heartbeatArgs(file: string, isWrite: boolean, settings: CliSettings): string[] {
-  const args = ['--entity', file, '--plugin', settings.plugin];
+export function heartbeatArgs(file: string, isWrite: boolean, settings: CliSettings, humanLines = 0): string[] {
+  const args = ['--entity', file, '--plugin', settings.plugin, '--human-line-changes', String(humanLines)];
   if (isWrite) args.push('--write');
   if (settings.apiUrl) args.push('--api-url', settings.apiUrl);
   return args;
@@ -24,9 +24,9 @@ export function heartbeatArgs(file: string, isWrite: boolean, settings: CliSetti
  * Starts a heartbeat and does not wait for it: the editor never blocks on the CLI. Errors are swallowed; the CLI keeps
  * an offline queue and retries on its own.
  */
-export function sendHeartbeat(file: string, isWrite: boolean, settings: CliSettings): void {
+export function sendHeartbeat(file: string, isWrite: boolean, settings: CliSettings, humanLines = 0): void {
   try {
-    const child = spawn(findCli(settings.cliPath), heartbeatArgs(file, isWrite, settings), { detached: false, stdio: 'ignore', windowsHide: true });
+    const child = spawn(findCli(settings.cliPath), heartbeatArgs(file, isWrite, settings, humanLines), { detached: false, stdio: 'ignore', windowsHide: true });
     child.on('error', () => undefined);
     child.unref();
   } catch {

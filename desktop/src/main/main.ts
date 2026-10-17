@@ -9,6 +9,7 @@ import { editorIcon } from './editorIcons';
 import { editorCandidates, type EditorId, findEditors, installExtension } from './editors';
 import { forgetDevice, loadDevice, saveDevice } from './keyStore';
 import { Mascot } from './mascot';
+import { syncDue, syncQueue } from './queue';
 import { CHEER_MS, type Mood, moodOf, shouldCheer } from './mood';
 import { loadSettings, saveSettings, type Settings } from './settings';
 import { restartToUpdate, startUpdates } from './updater';
@@ -45,6 +46,8 @@ const view: View = { phase: 'signedOut', locale: 'en', deviceName: '', summary: 
 /** Editors are looked for again when the window comes back, at most this often (each look starts every editor's CLI). */
 const EDITORS_EVERY_MS = 2 * 60_000;
 let editorsAt = 0;
+/** When tudi-cli's offline queue was last sent (queue.ts). */
+let syncedAt = 0;
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -173,6 +176,10 @@ async function installInto(id: unknown, refreshAfter = true): Promise<void> {
 async function refresh(): Promise<void> {
   if (refreshTimer) clearTimeout(refreshTimer);
   if (!device) return;
+  if (syncDue(syncedAt, Date.now())) {
+    syncedAt = Date.now();
+    await syncQueue(paths.cli, `tudi-desktop/${app.getVersion()}`);
+  }
   try {
     const summary = await new DesktopApi(apiUrl, device.apiKey).summary();
     if (view.summary && shouldCheer(view.summary, summary)) cheerUntil = Date.now() + CHEER_MS;

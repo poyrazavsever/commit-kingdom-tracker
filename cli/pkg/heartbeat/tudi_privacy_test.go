@@ -23,7 +23,12 @@ func TestTudiPrivacy_SendsNothingThatIdentifiesAFileOrAProject(t *testing.T) {
 		CursorPosition: &line,
 		AISession:      "session-1",
 		AILineChanges:  heartbeat.PointerTo(5),
-		Time:           1760520000,
+		// tudi-tracker: seen going out on 2026-10-17 before the privacy step removed them.
+		AIInputTokens:       8145,
+		AICachedInputTokens: 2963027,
+		AIOutputTokens:      4759,
+		AISubscriptionPlan:  "pro",
+		Time:                1760520000,
 	}
 
 	sanitized := heartbeat.TudiPrivacy(h, []byte("0123456789abcdef0123456789abcdef"))
@@ -33,7 +38,7 @@ func TestTudiPrivacy_SendsNothingThatIdentifiesAFileOrAProject(t *testing.T) {
 	}
 
 	sent := string(data)
-	for _, secret := range []string{"ada", "secret-startup", "Billing", "acquisition", "stripe", "session-1", "lineno", "cursorpos"} {
+	for _, secret := range []string{"ada", "secret-startup", "Billing", "acquisition", "stripe", "session-1", "lineno", "cursorpos", "tokens", "subscription", `"pro"`} {
 		if strings.Contains(sent, secret) {
 			t.Errorf("heartbeat still contains %q: %s", secret, sent)
 		}

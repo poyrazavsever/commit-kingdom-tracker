@@ -95,9 +95,10 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 		assertTudiProject(t, entities[0].Project) // tudi-tracker
 		require.NotNil(t, entities[0].AILineChange)
 		assert.Equal(t, -1, *entities[0].AILineChange)
-		assert.Equal(t, int64(3), entities[0].AIInputTokens)
-		assert.Equal(t, int64(3), entities[0].AICachedInputTokens)
-		assert.Equal(t, int64(7), entities[0].AIOutputTokens)
+		// tudi-tracker: token counts never leave the computer.
+		assert.Zero(t, entities[0].AIInputTokens)
+		assert.Zero(t, entities[0].AICachedInputTokens)
+		assert.Zero(t, entities[0].AIOutputTokens)
 		assert.Contains(t, entities[0].UserAgent, "claude-code/2.1.45")
 		assert.Contains(t, entities[0].UserAgent, "plugin/0.0.1")
 

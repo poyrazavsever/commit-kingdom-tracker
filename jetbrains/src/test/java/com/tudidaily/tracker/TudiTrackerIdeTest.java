@@ -67,6 +67,8 @@ public class TudiTrackerIdeTest extends BasePlatformTestCase {
         String write = calls().stream().filter(call -> call.contains("--write")).findFirst().orElseThrow();
         assertTrue(write, write.contains(path));
         assertTrue(write, write.contains("tudi-jetbrains/"));
+        // "x = 1\n" added one line, typed after the open's heartbeat; it goes with the save.
+        assertTrue(write, write.contains("--human-line-changes 1"));
         // The IDE's name goes before tudi-jetbrains: that is what Code Tower shows.
         assertTrue(write, write.matches(".*--plugin \"?[a-z]+/\\S+ tudi-jetbrains/.*"));
     }

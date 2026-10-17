@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { CliSettings, runCli, sendHeartbeat } from './cli';
 import { configPath, isSignedIn, SETUP_URL } from './config';
 import { HeartbeatGate } from './gate';
+import { LineCounter } from './lines';
 
 const TODAY_EVERY_MS = 5 * 60 * 1000;
 
@@ -14,6 +15,7 @@ const TODAY_EVERY_MS = 5 * 60 * 1000;
  */
 export function activate(context: vscode.ExtensionContext): void {
   const gate = new HeartbeatGate();
+  const lines = new LineCounter();
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10);
   status.command = 'tudi.today';
   status.text = '$(flame) Tudi';
@@ -30,7 +32,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const beat = (document: vscode.TextDocument | undefined, isWrite: boolean) => {
     if (!signedIn || !document || document.uri.scheme !== 'file') return;
-    if (gate.shouldSend(document.uri.fsPath, isWrite, Date.now())) sendHeartbeat(document.uri.fsPath, isWrite, settings());
+    const file = document.uri.fsPath;
+    // Lines gather between heartbeats and go with the next one for this file.
+    if (gate.shouldSend(file, isWrite, Date.now())) sendHeartbeat(file, isWrite, settings(), lines.take(file));
   };
 
   const refreshToday = async () => {
@@ -56,7 +60,9 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     status,
     vscode.workspace.onDidChangeTextDocument(event => {
-      if (event.contentChanges.length > 0 && event.document === vscode.window.activeTextEditor?.document) beat(event.document, false);
+      if (event.contentChanges.length === 0 || event.document !== vscode.window.activeTextEditor?.document) return;
+      if (event.document.uri.scheme === 'file') lines.add(event.document.uri.fsPath, event.contentChanges);
+      beat(event.document, false);
     }),
     vscode.workspace.onDidSaveTextDocument(document => beat(document, true)),
     vscode.window.onDidChangeActiveTextEditor(editor => beat(editor?.document, false)),

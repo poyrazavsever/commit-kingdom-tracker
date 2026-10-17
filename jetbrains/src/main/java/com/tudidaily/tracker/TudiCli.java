@@ -29,8 +29,8 @@ public final class TudiCli {
         return findCli(settings.cliPath(), System.getProperty("user.home"), System.getProperty("os.name", "").startsWith("Windows"));
     }
 
-    public static List<String> heartbeatArgs(String file, boolean isWrite, Settings settings) {
-        List<String> args = new ArrayList<>(List.of("--entity", file, "--plugin", settings.plugin()));
+    public static List<String> heartbeatArgs(String file, boolean isWrite, Settings settings, int humanLines) {
+        List<String> args = new ArrayList<>(List.of("--entity", file, "--plugin", settings.plugin(), "--human-line-changes", Integer.toString(humanLines)));
         if (isWrite) args.add("--write");
         if (!settings.apiUrl().isEmpty()) args.addAll(List.of("--api-url", settings.apiUrl()));
         return args;
@@ -40,10 +40,10 @@ public final class TudiCli {
      * Starts a heartbeat and does not wait for it: the IDE never blocks on the CLI. Errors are swallowed; the CLI keeps an
      * offline queue and retries on its own.
      */
-    public static void sendHeartbeat(String file, boolean isWrite, Settings settings) {
+    public static void sendHeartbeat(String file, boolean isWrite, Settings settings, int humanLines) {
         List<String> command = new ArrayList<>();
         command.add(findCli(settings));
-        command.addAll(heartbeatArgs(file, isWrite, settings));
+        command.addAll(heartbeatArgs(file, isWrite, settings, humanLines));
         try {
             new ProcessBuilder(command)
                     .redirectOutput(ProcessBuilder.Redirect.DISCARD)

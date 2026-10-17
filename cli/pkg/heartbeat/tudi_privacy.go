@@ -14,7 +14,8 @@ import (
 
 // Tudi Tracker privacy (tudi-tracker): applied to every heartbeat, after the upstream sanitization and whatever the
 // config says. What leaves the computer is time, language, editor, write flag and line counts. The file name, branch,
-// dependencies, line numbers and the real project name never do; the project is sent as a salted one-way hash.
+// dependencies, line numbers, AI session, prompt length, token counts, the AI tool's plan and the real project name
+// never do; the project is sent as a salted one-way hash.
 
 const saltFile = ".tudi-salt"
 
@@ -55,6 +56,11 @@ func TudiPrivacy(h Heartbeat, salt []byte) Heartbeat {
 	h.ProjectRootCount = nil
 	h.AISession = ""
 	h.AIPromptLength = 0
+	// Tokens and the AI tool's subscription plan say nothing about the work and are not Tudi's to know.
+	h.AIInputTokens = 0
+	h.AICachedInputTokens = 0
+	h.AIOutputTokens = 0
+	h.AISubscriptionPlan = ""
 
 	if h.Project != nil && *h.Project != "" {
 		hashed := HashProject(*h.Project, salt)

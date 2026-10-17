@@ -45,6 +45,7 @@ public final class TudiTracker implements Disposable {
     }
 
     private final HeartbeatGate gate = new HeartbeatGate();
+    private final LineCounter lines = new LineCounter();
     private final List<Runnable> listeners = new CopyOnWriteArrayList<>();
     private final AtomicBoolean refreshing = new AtomicBoolean();
     private final Path config = TudiConfig.configPath();
@@ -81,9 +82,13 @@ public final class TudiTracker implements Disposable {
     }
 
     /** A change in a document: counts only for a local file open in front of the user, like the VS Code extension. */
-    public void documentChanged(Document document) {
+    public void documentChanged(Document document, CharSequence oldText, CharSequence newText) {
         VirtualFile file = FileDocumentManager.getInstance().getFile(document);
-        if (file != null && isSelected(file)) beat(file, false);
+        if (file == null || !isSelected(file)) return;
+        String path = localPath(file);
+        // Lines gather between heartbeats and go with the next one for this file.
+        if (path != null) lines.add(path, LineCounter.delta(oldText, newText));
+        beat(file, false);
     }
 
     public void documentSaved(Document document) {
@@ -101,16 +106,22 @@ public final class TudiTracker implements Disposable {
     }
 
     private void beat(VirtualFile file, boolean isWrite) {
-        if (!signedIn || file == null || !file.isInLocalFileSystem() || file.isDirectory()) return;
-        String path;
-        try {
-            path = file.toNioPath().toString();
-        } catch (UnsupportedOperationException e) {
-            return;
-        }
-        if (!gate.shouldSend(path, isWrite, System.currentTimeMillis())) return;
+        if (!signedIn || file == null) return;
+        String path = localPath(file);
+        if (path == null || !gate.shouldSend(path, isWrite, System.currentTimeMillis())) return;
         TudiCli.Settings settings = settings();
-        ApplicationManager.getApplication().executeOnPooledThread(() -> TudiCli.sendHeartbeat(path, isWrite, settings));
+        int humanLines = lines.take(path);
+        ApplicationManager.getApplication().executeOnPooledThread(() -> TudiCli.sendHeartbeat(path, isWrite, settings, humanLines));
+    }
+
+    /** The file's path on disk, or null for anything that is not a local file. */
+    private static String localPath(VirtualFile file) {
+        if (!file.isInLocalFileSystem() || file.isDirectory()) return null;
+        try {
+            return file.toNioPath().toString();
+        } catch (UnsupportedOperationException e) {
+            return null;
+        }
     }
 
     private static boolean isSelected(VirtualFile file) {
