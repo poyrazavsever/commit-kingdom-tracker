@@ -1,0 +1,29 @@
+# Tests the JetBrains plugin and keeps the installable zip as an artifact. Publishing to JetBrains Marketplace waits for
+# the tudidaily vendor account (JETBRAINS_MARKETPLACE_TOKEN; `./gradlew publishPlugin`).
+name: JetBrains plugin
+
+on:
+  push:
+    paths: ['jetbrains/**', '.github/workflows/jetbrains.yml']
+  pull_request:
+    paths: ['jetbrains/**', '.github/workflows/jetbrains.yml']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jetbrains
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew test buildPlugin verifyPlugin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tudi-tracker-jetbrains
+          path: jetbrains/build/distributions/*.zip

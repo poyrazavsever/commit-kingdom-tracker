@@ -1,0 +1,26 @@
+<idea-plugin>
+    <id>com.tudidaily.tracker</id>
+    <name>Tudi Tracker</name>
+    <vendor url="https://tudidaily.com">Tudi Daily</vendor>
+    <description><![CDATA[
+        <p>Counts your coding for <a href="https://tudidaily.com">Tudi Daily</a>, the RPG where the code you write levels up your character.</p>
+        <p>Sign in once with <a href="https://tudidaily.com/tracker">Tudi Desktop</a>; this plugin never asks for an account. Only time, language and line counts leave your computer: file names, paths, branches and real project names never do.</p>
+        <p>Open source: <a href="https://github.com/poyrazavsever/tudi-tracker">github.com/poyrazavsever/tudi-tracker</a>.</p>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <statusBarWidgetFactory id="TudiTracker" implementation="com.tudidaily.tracker.TudiStatusWidget$Factory" order="first"/>
+        <editorFactoryDocumentListener implementation="com.tudidaily.tracker.TudiListeners$Typing"/>
+        <applicationConfigurable parentId="tools" instance="com.tudidaily.tracker.TudiConfigurable" id="com.tudidaily.tracker.settings" displayName="Tudi Tracker"/>
+    </extensions>
+
+    <applicationListeners>
+        <listener class="com.tudidaily.tracker.TudiListeners$Saving" topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>
+    </applicationListeners>
+
+    <projectListeners>
+        <listener class="com.tudidaily.tracker.TudiListeners$Switching" topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+    </projectListeners>
+</idea-plugin>

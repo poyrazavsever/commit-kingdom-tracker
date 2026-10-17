@@ -13,6 +13,7 @@ This repository is open so you can check exactly what is sent.
 | `desktop/` | Tudi Desktop (Electron, MIT): signs this computer in with your Tudi Daily account, shows today's coding and keeps a small Tudi on screen that watches, waits, naps and cheers with you |
 | `cli/` | `tudi-cli`, a fork of [wakatime-cli](https://github.com/wakatime/wakatime-cli) (BSD-3-Clause) pointed at Tudi Daily, with an always-on privacy step |
 | `vscode/` | The extension for the VS Code family (VS Code, Cursor, Windsurf, VSCodium, Antigravity) |
+| `jetbrains/` | The plugin for JetBrains IDEs 2024.2 and later (IntelliJ IDEA, PyCharm, WebStorm, Rider, GoLand, Android Studio…) |
 
 Editor extensions call `tudi-cli` the same way WakaTime plugins call `wakatime-cli`.
 
@@ -23,7 +24,7 @@ Editor extensions call `tudi-cli` the same way WakaTime plugins call `wakatime-c
 
 The key can only write coding activity. Signing out of Tudi Desktop, or removing the computer in the app's Code Tower, turns it off.
 
-3. Tudi Desktop carries `tudi-cli` and puts it in `~/.tudi`; each Tudi Desktop update brings the matching `tudi-cli`. It finds the VS Code family editors on the computer by their install folders and installs the Tudi Tracker extension in each with one click. The extension never asks you to sign in: it uses the key Tudi Desktop wrote and sends nothing until there is one.
+3. Tudi Desktop carries `tudi-cli` and puts it in `~/.tudi`; each Tudi Desktop update brings the matching `tudi-cli`. It finds the VS Code family editors on the computer by their install folders and installs the Tudi Tracker extension in each with one click. The extension never asks you to sign in: it uses the key Tudi Desktop wrote and sends nothing until there is one. The JetBrains plugin works the same way.
 
 ## What changed from wakatime-cli
 
@@ -64,6 +65,14 @@ cd vscode
 npm install
 npm test
 npm run package
+```
+
+The JetBrains plugin (Java 21; it behaves like the VS Code extension: the key comes from Tudi Desktop, heartbeats go through `tudi-cli`, the status bar shows today). `buildPlugin` puts the installable zip in `jetbrains/build/distributions/`; until it is on JetBrains Marketplace, install it with *Settings → Plugins → ⚙ → Install Plugin from Disk*:
+
+```sh
+cd jetbrains
+./gradlew test buildPlugin
+./gradlew runIde   # a sandbox IDE with the plugin
 ```
 
 ## Licence
