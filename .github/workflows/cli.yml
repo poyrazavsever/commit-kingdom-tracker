@@ -1,0 +1,29 @@
+# Tests tudi-cli on the three systems Tudi Desktop ships it for. The upstream tests are adapted to Tudi's behaviour
+# (privacy step, one-day AI lookback, Tudi Daily API); every change is marked with a tudi-tracker comment.
+name: tudi-cli
+
+on:
+  push:
+    paths: ['cli/**', '.github/workflows/cli.yml']
+  pull_request:
+    paths: ['cli/**', '.github/workflows/cli.yml']
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+          cache-dependency-path: cli/go.sum
+      - run: go vet ./...
+      - run: go test ./...

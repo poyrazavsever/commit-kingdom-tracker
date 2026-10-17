@@ -72,6 +72,8 @@ func TestRunWithRateLimiting(t *testing.T) {
 	// setup offline queue
 	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
+	// tudi-tracker: bolt opens the file by name; an open handle keeps Windows from removing the temp dir.
+	require.NoError(t, f.Close())
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
@@ -165,6 +167,8 @@ func TestRunWithoutRateLimiting(t *testing.T) {
 	// setup offline queue
 	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
+	// tudi-tracker: bolt opens the file by name; an open handle keeps Windows from removing the temp dir.
+	require.NoError(t, f.Close())
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
@@ -351,6 +355,8 @@ func TestSyncOfflineActivity(t *testing.T) {
 	// setup offline queue
 	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
+	// tudi-tracker: bolt opens the file by name; an open handle keeps Windows from removing the temp dir.
+	require.NoError(t, f.Close())
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
@@ -430,6 +436,8 @@ func TestSyncOfflineActivity_MultipleApiKey(t *testing.T) {
 	// setup offline queue
 	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
+	// tudi-tracker: bolt opens the file by name; an open handle keeps Windows from removing the temp dir.
+	require.NoError(t, f.Close())
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)
@@ -577,6 +585,8 @@ func TestSyncOfflineActivity_MultipleAPIURLs(t *testing.T) {
 	// setup offline queue with heartbeat that matches api_urls pattern
 	f, err := os.CreateTemp(t.TempDir(), "")
 	require.NoError(t, err)
+	// tudi-tracker: bolt opens the file by name; an open handle keeps Windows from removing the temp dir.
+	require.NoError(t, f.Close())
 
 	db, err := bolt.Open(f.Name(), 0600, nil)
 	require.NoError(t, err)

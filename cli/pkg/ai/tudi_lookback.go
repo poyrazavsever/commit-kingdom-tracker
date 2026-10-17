@@ -7,9 +7,26 @@ import "time"
 // the last 24 hours (ADR-024 §12) and never needs activity from before the computer was linked.
 const TudiMaxLookback = 24 * time.Hour
 
-// tudiCutoff moves an AI log watermark forward so it is never older than TudiMaxLookback.
+// tudiLookback is TudiMaxLookback in tudi-cli. The upstream AI parsing tests read dated log fixtures, so they turn the
+// limit off (tudi_main_test.go, SetTudiLookbackForTests); TestTudiCutoff checks the limit itself.
+var tudiLookback = TudiMaxLookback
+
+// SetTudiLookbackForTests changes the AI log lookback for tests in other packages; 0 turns the limit off. It returns
+// the previous value. tudi-cli itself never calls it.
+func SetTudiLookbackForTests(lookback time.Duration) time.Duration {
+	previous := tudiLookback
+	tudiLookback = lookback
+
+	return previous
+}
+
+// tudiCutoff moves an AI log watermark forward so it is never older than the lookback.
 func tudiCutoff(parsed time.Time, now time.Time) time.Time {
-	if earliest := now.Add(-TudiMaxLookback); parsed.Before(earliest) {
+	if tudiLookback <= 0 {
+		return parsed
+	}
+
+	if earliest := now.Add(-tudiLookback); parsed.Before(earliest) {
 		return earliest
 	}
 

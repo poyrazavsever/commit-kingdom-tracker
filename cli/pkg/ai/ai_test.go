@@ -311,10 +311,10 @@ func TestSendHeartbeats_WithAIParsing(t *testing.T) {
 
 		assert.Equal(t, 2, len(entities))
 
-		assert.Equal(t, entity, entities[0].Entity)
-		assert.Equal(t, "wakatime-cli", *entities[0].Project)
+		assert.Equal(t, tudiEntity(entity), entities[0].Entity) // tudi-tracker: file names never leave
+		assertTudiProject(t, entities[0].Project)               // tudi-tracker: hashed project
 		assert.Equal(t, "Golang", *entities[0].Language)
-		assert.Greater(t, *entities[0].ProjectRootCount, 1)
+		assert.Nil(t, entities[0].ProjectRootCount) // tudi-tracker: removed by the privacy step
 		assert.Equal(
 			t,
 			heartbeat.UserAgent(t.Context(), "claude-code/2.1.45"),
@@ -322,7 +322,7 @@ func TestSendHeartbeats_WithAIParsing(t *testing.T) {
 		)
 		assert.Contains(t, entities[0].UserAgent, "claude-code/2.1.45")
 		assert.NotContains(t, entities[0].UserAgent, plugin)
-		assert.Equal(t, local, entities[1].Entity)
+		assert.Equal(t, tudiEntity(local), entities[1].Entity)
 
 		// send response
 		w.WriteHeader(http.StatusCreated)
@@ -416,7 +416,7 @@ func TestSendHeartbeats_SkipsAIParsingWhenSyncLockBusy(t *testing.T) {
 
 		require.NoError(t, json.Unmarshal(body, &entities))
 		require.Len(t, entities, 1)
-		assert.Equal(t, entity, entities[0].Entity)
+		assert.Equal(t, tudiEntity(entity), entities[0].Entity) // tudi-tracker
 		assert.NotEqual(t, heartbeat.AICodingCategory.String(), entities[0].Category)
 
 		w.WriteHeader(http.StatusCreated)
@@ -548,7 +548,7 @@ func TestSendHeartbeats_WithAIParsingDisabled(t *testing.T) {
 
 		assert.Equal(t, 1, len(entities))
 
-		assert.Equal(t, entity, entities[0].Entity)
+		assert.Equal(t, tudiEntity(entity), entities[0].Entity) // tudi-tracker
 		assert.Equal(t, "debugging", entities[0].Category)
 
 		// send response
@@ -657,8 +657,8 @@ func TestSendHeartbeats_WithAIParsingBatchAppliedOnce(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Len(t, entities, 2)
-		assert.Equal(t, entity, entities[0].Entity)
-		assert.Equal(t, local, entities[1].Entity)
+		assert.Equal(t, tudiEntity(entity), entities[0].Entity) // tudi-tracker
+		assert.Equal(t, tudiEntity(local), entities[1].Entity)
 
 		w.WriteHeader(http.StatusCreated)
 

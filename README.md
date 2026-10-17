@@ -41,10 +41,10 @@ AI line attribution works as upstream does: the CLI reads the local logs of AI c
 ```sh
 cd cli
 go build -o ../bin/tudi-cli .
-go test ./pkg/heartbeat/ ./pkg/ini/
+go test ./...
 ```
 
-Some upstream tests in `cmd/heartbeat`, `cmd/fileexperts`, `pkg/ai` and `pkg/params` still expect upstream behaviour (no privacy step, no lookback limit) and fail; they are being adapted.
+The upstream tests expect what tudi-cli sends: hidden file names, hashed projects, no AI session ids, the Tudi Daily API. The AI parsing tests read dated log fixtures, so they run without the one-day lookback, which has its own test. File experts needs a file path, so tudi-cli never asks for them. `.github/workflows/cli.yml` runs the tests on Linux, Windows and macOS, and a Tudi Desktop release runs them before it builds `tudi-cli`.
 
 Tudi Desktop (`build:cli` puts this platform's `tudi-cli` in `desktop/resources/bin/`; pass targets such as `darwin-arm64 win32-x64` to build others):
 

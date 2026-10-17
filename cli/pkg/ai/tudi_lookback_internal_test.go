@@ -6,6 +6,9 @@ import (
 )
 
 func TestTudiCutoff_NeverReadsMoreThanADayBack(t *testing.T) {
+	previous := SetTudiLookbackForTests(TudiMaxLookback)
+	t.Cleanup(func() { SetTudiLookbackForTests(previous) })
+
 	now := time.Date(2026, 10, 15, 12, 0, 0, 0, time.UTC)
 	upstreamFirstSync := time.Date(2025, time.February, 24, 0, 0, 0, 0, time.UTC)
 

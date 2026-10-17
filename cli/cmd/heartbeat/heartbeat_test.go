@@ -16,6 +16,7 @@ import (
 	"time"
 
 	cmdheartbeat "github.com/wakatime/wakatime-cli/cmd/heartbeat"
+	"github.com/wakatime/wakatime-cli/pkg/ai"
 	"github.com/wakatime/wakatime-cli/pkg/api"
 	"github.com/wakatime/wakatime-cli/pkg/file"
 	"github.com/wakatime/wakatime-cli/pkg/heartbeat"
@@ -47,6 +48,9 @@ func TestMain(m *testing.M) {
 	_ = os.Setenv("USERPROFILE", home)
 	_ = os.Setenv("WAKATIME_HOME", home)
 	_ = os.Unsetenv("WAKATIME_API_KEY")
+
+	// tudi-tracker: the AI sync tests read dated log fixtures; Tudi's one-day lookback is tested in pkg/ai.
+	ai.SetTudiLookbackForTests(0)
 
 	code := m.Run()
 
@@ -105,7 +109,7 @@ func TestSendHeartbeats(t *testing.T) {
 			heartbeat.UserAgent(t.Context(), plugin),
 		)
 
-		assert.True(t, strings.HasSuffix(entity.Entity, "testdata/main.go"))
+		assert.Equal(t, tudiEntity("testdata/main.go"), entity.Entity) // tudi-tracker
 		assertJSONEqIgnoringProjectRootCount(t, expectedBodyStr, string(body))
 
 		// send response
@@ -383,14 +387,14 @@ func TestSendHeartbeats_ExtraHeartbeats(t *testing.T) {
 		err = json.Unmarshal(body, &entities)
 		require.NoError(t, err)
 
-		assert.True(t, strings.HasSuffix(entities[0].Entity, "testdata/main.go"))
-		assert.True(t, strings.HasSuffix(entities[1].Entity, "testdata/main.go"))
-		assert.True(t, strings.HasSuffix(entities[2].Entity, "testdata/main.py"))
+		assert.Equal(t, tudiEntity("testdata/main.go"), entities[0].Entity) // tudi-tracker
+		assert.Equal(t, tudiEntity("testdata/main.go"), entities[1].Entity) // tudi-tracker
+		assert.Equal(t, tudiEntity("testdata/main.py"), entities[2].Entity) // tudi-tracker
 
 		require.Len(t, entities, offline.SendLimit)
 
 		for i := 3; i < offline.SendLimit; i++ {
-			assert.True(t, strings.HasSuffix(entities[i].Entity, "testdata/main.go"))
+			assert.Equal(t, tudiEntity("testdata/main.go"), entities[i].Entity) // tudi-tracker
 		}
 
 		userAgent := heartbeat.UserAgent(ctx, plugin)
@@ -506,14 +510,14 @@ func TestSendHeartbeats_ExtraHeartbeatsNestedError(t *testing.T) {
 		err = json.Unmarshal(body, &entities)
 		require.NoError(t, err)
 
-		assert.True(t, strings.HasSuffix(entities[0].Entity, "testdata/main.go"))
-		assert.True(t, strings.HasSuffix(entities[1].Entity, "testdata/main.go"))
-		assert.True(t, strings.HasSuffix(entities[2].Entity, "testdata/main.py"))
+		assert.Equal(t, tudiEntity("testdata/main.go"), entities[0].Entity) // tudi-tracker
+		assert.Equal(t, tudiEntity("testdata/main.go"), entities[1].Entity) // tudi-tracker
+		assert.Equal(t, tudiEntity("testdata/main.py"), entities[2].Entity) // tudi-tracker
 
 		require.Len(t, entities, offline.SendLimit)
 
 		for i := 3; i < offline.SendLimit; i++ {
-			assert.True(t, strings.HasSuffix(entities[i].Entity, "testdata/main.go"))
+			assert.Equal(t, tudiEntity("testdata/main.go"), entities[i].Entity) // tudi-tracker
 		}
 
 		userAgent := heartbeat.UserAgent(ctx, plugin)
@@ -743,6 +747,10 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 		plugin,
 	)
 
+	// tudi-tracker: the project leaves only as a salted hash.
+	require.Len(t, hh, 1)
+	assertTudiProject(t, hh[0].Project)
+
 	assert.Equal(t, []heartbeat.Heartbeat{
 		{
 			Branch:           nil,
@@ -755,7 +763,7 @@ func TestSendHeartbeats_ExtraHeartbeats_Sanitize(t *testing.T) {
 			Language:         heartbeat.PointerTo("Go"),
 			LineNumber:       nil,
 			Lines:            nil,
-			Project:          heartbeat.PointerTo("wakatime-cli"),
+			Project:          hh[0].Project,
 			ProjectRootCount: nil,
 			Time:             1585598059,
 			UserAgent:        userAgent,
@@ -837,9 +845,9 @@ func TestSendHeartbeats_ExtraHeartbeatsIsUnsavedEntity(t *testing.T) {
 		err = json.Unmarshal(body, &entities)
 		require.NoError(t, err)
 
-		assert.True(t, strings.HasSuffix(entities[0].Entity, "missing"))
-		assert.True(t, strings.HasSuffix(entities[1].Entity, "missing-from-extra-heartbeats"))
-		assert.True(t, strings.HasSuffix(entities[2].Entity, "main.go"))
+		assert.Equal(t, tudiEntity("missing"), entities[0].Entity)                       // tudi-tracker
+		assert.Equal(t, tudiEntity("missing-from-extra-heartbeats"), entities[1].Entity) // tudi-tracker
+		assert.Equal(t, tudiEntity("main.go"), entities[2].Entity)                       // tudi-tracker
 
 		userAgent := heartbeat.UserAgent(ctx, plugin)
 
@@ -970,8 +978,8 @@ func TestSendHeartbeats_NonExistingExtraHeartbeatsEntity(t *testing.T) {
 		err = json.Unmarshal(body, &entities)
 		require.NoError(t, err)
 
-		assert.True(t, strings.HasSuffix(entities[0].Entity, "testdata/main.go"))
-		assert.True(t, strings.HasSuffix(entities[1].Entity, "testdata/main.py"))
+		assert.Equal(t, tudiEntity("testdata/main.go"), entities[0].Entity) // tudi-tracker
+		assert.Equal(t, tudiEntity("testdata/main.py"), entities[1].Entity) // tudi-tracker
 
 		userAgent := heartbeat.UserAgent(ctx, plugin)
 
@@ -1333,8 +1341,8 @@ func TestSendHeartbeats_ObfuscateProject(t *testing.T) {
 			heartbeat.UserAgent(ctx, plugin),
 		)
 
-		assert.True(t, strings.HasSuffix(entity.Entity, "src/pkg/file.go"))
-		assert.JSONEq(t, expectedBodyStr, string(body))
+		assert.Equal(t, tudiEntity("src/pkg/file.go"), entity.Entity)          // tudi-tracker
+		assertJSONEqIgnoringProjectRootCount(t, expectedBodyStr, string(body)) // tudi-tracker: project hashed
 
 		// send response
 		w.WriteHeader(http.StatusCreated)
@@ -1427,8 +1435,8 @@ func TestSendHeartbeats_ObfuscateProjectNotBranch(t *testing.T) {
 
 		expectedBodyStr := fmt.Sprintf(string(expectedBody), entity.Entity, lines[0], heartbeat.UserAgent(ctx, plugin))
 
-		assert.True(t, strings.HasSuffix(entity.Entity, "src/pkg/file.go"))
-		assert.JSONEq(t, expectedBodyStr, string(body))
+		assert.Equal(t, tudiEntity("src/pkg/file.go"), entity.Entity)          // tudi-tracker
+		assertJSONEqIgnoringProjectRootCount(t, expectedBodyStr, string(body)) // tudi-tracker: project hashed
 
 		// send response
 		w.WriteHeader(http.StatusCreated)
@@ -1533,6 +1541,7 @@ func assertJSONEqIgnoringProjectRootCount(t *testing.T, expected, actual string)
 
 	removeProjectRootCount(expectedJSON)
 	removeProjectRootCount(actualJSON)
+	applyTudiPrivacy(t, expectedJSON, actualJSON) // tudi-tracker
 
 	assert.Equal(t, expectedJSON, actualJSON)
 }
@@ -1551,6 +1560,7 @@ func assertJSONPrefixEqIgnoringProjectRootCount(t *testing.T, expected, actual s
 
 	removeProjectRootCount(expectedJSON)
 	removeProjectRootCount(actualJSON)
+	applyTudiPrivacy(t, any(expectedJSON), any(actualJSON)) // tudi-tracker
 
 	assert.Equal(t, expectedJSON, actualJSON)
 }

@@ -86,13 +86,13 @@ func TestRunAISyncActivity_SendsAIHeartbeatsWithoutEntity(t *testing.T) {
 
 		require.NoError(t, json.Unmarshal(body, &entities))
 		require.Len(t, entities, 1)
-		assert.Equal(t, entity, entities[0].Entity)
-		assert.Equal(t, "session", entities[0].AISession)
+		assert.Equal(t, tudiEntity(entity), entities[0].Entity) // tudi-tracker
+		assert.Empty(t, entities[0].AISession)                  // tudi-tracker: AI session ids never leave
 		assert.Equal(t, "ai coding", entities[0].Category)
 		require.NotNil(t, entities[0].Language)
 		assert.Equal(t, "Go", *entities[0].Language)
 		require.NotNil(t, entities[0].Project)
-		assert.Equal(t, "myproject", *entities[0].Project)
+		assertTudiProject(t, entities[0].Project) // tudi-tracker
 		require.NotNil(t, entities[0].AILineChange)
 		assert.Equal(t, -1, *entities[0].AILineChange)
 		assert.Equal(t, int64(3), entities[0].AIInputTokens)
@@ -258,7 +258,7 @@ func TestRunAISyncActivity_IncludeOverridesExcludeForAIHeartbeats(t *testing.T) 
 
 		require.NoError(t, json.Unmarshal(body, &entities))
 		require.Len(t, entities, 1)
-		assert.Equal(t, includedEntity, entities[0].Entity)
+		assert.Equal(t, tudiEntity(includedEntity), entities[0].Entity) // tudi-tracker
 
 		w.WriteHeader(http.StatusCreated)
 
@@ -342,8 +342,8 @@ func TestRunAISyncActivity_SendsAIPromptLengthToAPI(t *testing.T) {
 
 		require.NoError(t, json.Unmarshal(body, &entities))
 		require.Len(t, entities, 1)
-		assert.Equal(t, "019d3438-39ae-7fb2-8526-d6c02ba3577c", entities[0].AISession)
-		assert.Equal(t, len([]rune("Please implement the code as described by the comment.")), entities[0].AIPromptLength)
+		assert.Empty(t, entities[0].AISession)     // tudi-tracker: AI session ids never leave
+		assert.Zero(t, entities[0].AIPromptLength) // tudi-tracker: prompt lengths never leave
 		assert.NotContains(t, entities[0].UserAgent, "Codex/")
 
 		w.WriteHeader(http.StatusCreated)
@@ -479,10 +479,10 @@ func TestRunAISyncActivity_UsesAlternateProject(t *testing.T) {
 
 		require.NoError(t, json.Unmarshal(body, &entities))
 		require.Len(t, entities, 1)
-		assert.Equal(t, entity, entities[0].Entity)
+		assert.Equal(t, tudiEntity(entity), entities[0].Entity) // tudi-tracker
 		assert.Equal(t, "ai coding", entities[0].Category)
 		require.NotNil(t, entities[0].Project)
-		assert.Equal(t, "fallback-project", *entities[0].Project)
+		assertTudiProject(t, entities[0].Project) // tudi-tracker
 
 		w.WriteHeader(http.StatusCreated)
 
@@ -580,5 +580,5 @@ func TestRunAISyncActivity_RateLimitedWithoutEntity_SavesOffline(t *testing.T) {
 	queued, err := offline.ReadHeartbeats(t.Context(), offlineQueueFile.Name(), 1)
 	require.NoError(t, err)
 	require.Len(t, queued, 1)
-	assert.Equal(t, "session", queued[0].AISession)
+	assert.Empty(t, queued[0].AISession) // tudi-tracker: the offline queue keeps only what may leave
 }

@@ -2469,7 +2469,7 @@ func TestLoadAPIParams_BackoffAt(t *testing.T) {
 		BackoffAt:      backoffAt,
 		BackoffRetries: 3,
 		Key:            "00000000-0000-4000-8000-000000000000",
-		URL:            "https://api.wakatime.com/api/v1",
+		URL:            api.BaseURL, // tudi-tracker: the default API is Tudi Daily
 		Hostname:       "my-computer",
 	}, params)
 }
