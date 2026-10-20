@@ -6,7 +6,7 @@ import { clearCliKey, cliKey, cliPaths, markAiStart, writeCliKey } from './cliCo
 import { bundledCli, ensureCli } from './cliInstall';
 import { apiUrl, appUrl, DEFAULT_API_URL, heartbeatApiUrl } from './config';
 import { editorIcon } from './editorIcons';
-import { editorCandidates, findEditors, installExtension } from './editors';
+import { editorCandidates, extensionSource, findEditors, installExtension } from './editors';
 import { findJetBrainsIdes, installPlugin } from './jetbrains';
 import { forgetDevice, loadDevice, saveDevice } from './keyStore';
 import { Mascot } from './mascot';
@@ -28,6 +28,8 @@ type View = {
    */
   editors: { id: string; name: string; icon: string | null; hasExtension: boolean; installing: boolean; restart: boolean }[] | null;
   error: 'signIn' | 'offline' | 'keyStore' | 'rename' | 'install' | 'cli' | null;
+  /** Increments even when the same error happens twice, so every event gets its own toast. */
+  errorId: number;
 };
 
 const REFRESH_MS = 60_000;
@@ -46,7 +48,7 @@ let settings: Settings;
 let cheerUntil = 0;
 /** A downloaded update waiting for a restart. */
 let updateReady: string | null = null;
-const view: View = { phase: 'signedOut', locale: 'en', deviceName: '', summary: null, editors: null, error: null };
+const view: View = { phase: 'signedOut', locale: 'en', deviceName: '', summary: null, editors: null, error: null, errorId: 0 };
 /** Editors are looked for again when the window comes back, at most this often (each look starts every editor's CLI). */
 const EDITORS_EVERY_MS = 2 * 60_000;
 let editorsAt = 0;
@@ -129,7 +131,8 @@ async function startSignIn(): Promise<void> {
     void refresh();
   } catch (error) {
     const keyStore = error instanceof Error && /key store/.test(error.message);
-    set({ phase: 'signedOut', error: error instanceof SignInCancelled ? null : keyStore ? 'keyStore' : 'signIn' });
+    set({ phase: 'signedOut', error: null });
+    if (!(error instanceof SignInCancelled)) fail(keyStore ? 'keyStore' : 'signIn');
   } finally {
     signInAbort = null;
   }
@@ -139,9 +142,9 @@ async function startSignIn(): Promise<void> {
 function installCli(): void {
   const resources = app.isPackaged ? process.resourcesPath : join(__dirname, '..', '..', 'resources');
   try {
-    if (ensureCli(bundledCli(resources), paths.cli) === 'missing') set({ error: 'cli' });
+    if (ensureCli(bundledCli(resources), paths.cli) === 'missing') fail('cli');
   } catch {
-    set({ error: 'cli' });
+    fail('cli');
   }
 }
 
@@ -183,14 +186,18 @@ async function installInto(id: unknown, refreshAfter = true): Promise<void> {
   const mark = (installing: boolean) => set({ editors: (view.editors ?? []).map(item => (item.id === id ? { ...item, installing } : item)) });
   mark(true);
   try {
-    if (editor) await installExtension(editor);
-    else if (ide) {
+    if (editor) {
+      const developmentVsix = join(__dirname, '..', '..', '..', 'vscode', 'tudi-tracker.vsix');
+      await installExtension(editor, undefined, extensionSource(process.resourcesPath, developmentVsix));
+    } else if (ide) {
       await installPlugin(ide);
       restartIds.add(ide.id);
     }
     if (view.error === 'install') set({ error: null });
-  } catch {
-    set({ error: 'install' });
+  } catch (error) {
+    const name = editor?.name ?? ide?.name ?? String(id);
+    console.error(`Could not install Tudi Tracker in ${name}:`, error);
+    fail('install');
   }
   mark(false);
   if (refreshAfter) await refreshEditors(true);
@@ -213,7 +220,7 @@ async function refresh(): Promise<void> {
     set({ summary, deviceName: summary.deviceName, error: view.error === 'offline' ? null : view.error });
   } catch (error) {
     if (error instanceof KeyRevoked) return forgetLocally();
-    set({ error: 'offline' });
+    if (view.error !== 'offline') fail('offline');
   }
   refreshTimer = setTimeout(() => void refresh(), REFRESH_MS);
 }
@@ -228,7 +235,7 @@ async function rename(name: string): Promise<void> {
     set({ deviceName: trimmed, error: null });
   } catch (error) {
     if (error instanceof KeyRevoked) return forgetLocally();
-    set({ error: 'rename' });
+    fail('rename');
   }
 }
 
@@ -260,6 +267,10 @@ function set(change: Partial<View>): void {
   window?.webContents.send('state', view);
   updateTray();
   updateMascot();
+}
+
+function fail(error: NonNullable<View['error']>): void {
+  set({ error, errorId: view.errorId + 1 });
 }
 
 /** Tudi stays on screen while this computer is signed in and the member has not hidden it. */

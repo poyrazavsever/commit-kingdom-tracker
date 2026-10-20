@@ -14,6 +14,7 @@ export type Summary = {
   deviceId: string;
   deviceName: string;
   today: TrackerToday;
+  codeGoal: { targetMinutes: number; weightedMinutes: number; kept: boolean; keptAt: string | null } | null;
   week: { date: string; weightedMinutes: number; rewardedMinutes: number }[];
   lastHeartbeatAt: string | null;
 };

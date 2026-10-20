@@ -72,6 +72,9 @@
   };
 
   const app = document.getElementById('app');
+  const toastHost = document.getElementById('toasts');
+  let toastId = 0;
+  let lastErrorId = 0;
 
   function el(tag, attributes = {}, ...children) {
     const node = document.createElement(tag);
@@ -90,6 +93,42 @@
     app.replaceChildren(...nodes.filter(node => node !== null));
   }
 
+  function toast(message, tone) {
+    const id = ++toastId;
+    const closeLabel = document.documentElement.lang === 'tr' ? 'Bildirimi kapat' : 'Dismiss notification';
+    const node = el(
+      'div',
+      { className: `toast notice ${tone}`, role: tone === 'error' ? 'alert' : 'status' },
+      el('span', { className: 'toast-message' }, message),
+      el('button', { className: 'toast-close', ariaLabel: closeLabel, onclick: () => closeToast(node) }, '×'),
+    );
+    node.dataset.toastId = String(id);
+    toastHost.append(node);
+    restackToasts();
+  }
+
+  function closeToast(node) {
+    if (node._dismissTimer) clearTimeout(node._dismissTimer);
+    node.remove();
+    restackToasts();
+  }
+
+  function restackToasts() {
+    const items = [...toastHost.children];
+    const visibleDepth = Math.min(Math.max(items.length - 1, 0), 2);
+    toastHost.style.setProperty('--stack-depth', String(visibleDepth));
+    items.forEach((item, index) => {
+      const depth = Math.min(index, 2);
+      item.style.setProperty('--stack-inset', `${depth * 7}px`);
+      item.style.setProperty('--stack-offset', `${(visibleDepth - depth) * 10}px`);
+      item.style.setProperty('--stack-z', String(100 - index));
+      item.style.setProperty('--stack-opacity', String(1 - depth * 0.1));
+      item.toggleAttribute('aria-hidden', index > 0);
+      item.querySelector('.toast-close').tabIndex = index === 0 ? 0 : -1;
+      if (index === 0 && !item._dismissTimer) item._dismissTimer = setTimeout(() => closeToast(item), 5000);
+    });
+  }
+
   let lastPhase = null;
 
   function render(state) {
@@ -98,7 +137,10 @@
     // Entrance motion plays when the view changes, not on every minute's refresh.
     app.className = `${state.phase}${state.phase !== lastPhase ? ' fresh' : ''}`;
     lastPhase = state.phase;
-    const error = state.error ? el('p', { className: `notice ${state.error === 'offline' ? 'info' : 'error'}`, role: state.error === 'offline' ? 'status' : 'alert' }, t.errors[state.error]) : null;
+    if (state.error && state.errorId !== lastErrorId) {
+      lastErrorId = state.errorId;
+      toast(t.errors[state.error], state.error === 'offline' ? 'info' : 'error');
+    }
     const button = (label, onclick, kind = '') => el('button', { className: `button ${kind}`.trim(), onclick }, label);
     const delay = (node, ms) => {
       node.classList.add('appear');
@@ -117,7 +159,6 @@
           el('h1', {}, waiting ? t.waitingTitle : t.title),
           el('p', {}, waiting ? t.waitingBody : t.signedOutBody),
           waiting ? el('div', { className: 'dots', ariaHidden: true }, el('i'), el('i'), el('i')) : null,
-          error,
         ),
         el('div', { className: 'welcome-action' }, waiting ? button(t.cancel, () => window.tudi.cancelSignIn(), 'secondary') : button(t.signIn, () => window.tudi.signIn())),
       );
@@ -193,7 +234,6 @@
     const focused = typing !== null;
     show(
       el('header', { className: 'top' }, el('h1', {}, t.title), el('div', { className: 'device' }, el('label', { className: 'label', htmlFor: 'device-name' }, t.computer), name, button(t.save, save, 'secondary small'))),
-      error,
       el(
         'div',
         { className: 'columns' },

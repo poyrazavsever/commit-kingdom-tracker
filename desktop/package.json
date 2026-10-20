@@ -9,11 +9,12 @@
   "scripts": {
     "postinstall": "install-electron --no",
     "build": "tsc -p .",
+    "build:extension": "npm --prefix ../vscode run package",
     "build:cli": "node scripts/build-cli.mjs",
-    "start": "tsc -p . && electron .",
+    "start": "npm run build:extension && tsc -p . && electron .",
     "test": "tsc -p . && node --test out/test/signIn.test.js out/test/mood.test.js out/test/setup.test.js out/test/queue.test.js out/test/jetbrains.test.js",
-    "dist": "tsc -p . && electron-builder",
-    "dist:dir": "tsc -p . && electron-builder --dir"
+    "dist": "npm run build:extension && tsc -p . && electron-builder",
+    "dist:dir": "npm run build:extension && tsc -p . && electron-builder --dir"
   },
   "devDependencies": {
     "@types/node": "22.20.4",
@@ -50,6 +51,10 @@
     ],
     "extraResources": [
       {
+        "from": "../vscode/tudi-tracker.vsix",
+        "to": "extensions/tudi-tracker.vsix"
+      },
+      {
         "from": "resources/bin/${platform}-${arch}",
         "to": "bin/${platform}-${arch}"
       }
@@ -67,7 +72,7 @@
     "nsis": {
       "oneClick": true,
       "perMachine": false,
-      "artifactName": "TudiDesktop-Setup-${version}.${ext}",
+      "artifactName": "TudiDesktop-Setup.${ext}",
       "shortcutName": "Tudi Desktop",
       "deleteAppDataOnUninstall": false
     },
@@ -90,7 +95,7 @@
       ],
       "category": "public.app-category.developer-tools",
       "hardenedRuntime": true,
-      "artifactName": "TudiDesktop-${version}-${arch}.${ext}"
+      "artifactName": "TudiDesktop-${arch}.${ext}"
     },
     "publish": [
       {

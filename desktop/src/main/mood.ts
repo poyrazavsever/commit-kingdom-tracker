@@ -18,11 +18,14 @@ export function moodOf(lastHeartbeatAt: string | null | undefined, now: Date): E
 }
 
 /**
- * Tudi cheers when the day's first rewarded minute arrives (Ürün/Tudi Tracker: “İlk dakikan geldi”). Not on start-up:
- * a day that already had minutes before Tudi Desktop opened is not news. The daily code goal joins in Etap 3.
+ * Tudi cheers when the day's first rewarded minute arrives or today's code goal changes to kept. Not on start-up:
+ * progress that happened before Tudi Desktop opened is not news.
  */
 export function shouldCheer(previous: Summary | null, next: Summary): boolean {
   if (!previous) return false;
   const before = previous.today.date === next.today.date ? previous.today.rewardedMinutes : 0;
-  return before === 0 && next.today.rewardedMinutes > 0;
+  const firstRewardedMinute = before === 0 && next.today.rewardedMinutes > 0;
+  const goalBecameKept = next.codeGoal?.kept === true
+    && (previous.today.date !== next.today.date || previous.codeGoal?.kept !== true);
+  return firstRewardedMinute || goalBecameKept;
 }

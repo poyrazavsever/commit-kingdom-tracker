@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { bundledCli, ensureCli } from '../main/cliInstall';
-import { editorCandidates, EXTENSION_ID, findEditors, installExtension } from '../main/editors';
+import { editorCandidates, EXTENSION_ID, extensionSource, findEditors, installExtension } from '../main/editors';
 
 test('tudi-cli is installed, kept, and replaced when Tudi Desktop carries a new one', () => {
   const dir = mkdtempSync(join(tmpdir(), 'tudi-cli-'));
@@ -50,4 +50,21 @@ test('editors are found by install location, and the extension is looked for in 
   await installExtension(candidates[1], run, 'C:\dev\tudi-tracker.vsix').catch(() => undefined);
   assert.deepEqual(calls.at(-1), [cursor, '--install-extension', 'C:\dev\tudi-tracker.vsix', '--force']);
   assert.deepEqual(editorCandidates('linux', {}, local), []);
+});
+
+test('the extension installer prefers an override, then the carried or development VSIX, before the marketplace', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'tudi-vsix-'));
+  const resources = join(dir, 'resources');
+  const development = join(dir, 'vscode', 'tudi-tracker.vsix');
+  assert.equal(extensionSource(resources, development, {}), EXTENSION_ID);
+
+  mkdirSync(join(development, '..'), { recursive: true });
+  writeFileSync(development, 'dev');
+  assert.equal(extensionSource(resources, development, {}), development);
+
+  const bundled = join(resources, 'extensions', 'tudi-tracker.vsix');
+  mkdirSync(join(bundled, '..'), { recursive: true });
+  writeFileSync(bundled, 'bundle');
+  assert.equal(extensionSource(resources, development, {}), bundled);
+  assert.equal(extensionSource(resources, development, { TUDI_VSIX: 'C:\\override.vsix' }), 'C:\\override.vsix');
 });

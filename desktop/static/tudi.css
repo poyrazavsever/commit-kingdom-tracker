@@ -212,6 +212,50 @@ h2 { margin: 0; font: 800 17px/22px 'Nunito', sans-serif; }
 .notice.error { background: var(--coral-soft); border-color: var(--coral-deep); }
 .notice.info { background: var(--sky-soft); border-color: var(--sky-deep); }
 
+/* Viewport toasts stack like cards and never reflow the app. */
+.toast-host {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1000;
+  width: min(420px, calc(100vw - 36px));
+  display: block;
+  padding-top: calc(var(--stack-depth, 0) * 10px);
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--ink) 18%, transparent);
+  animation: toast-in 200ms ease-out both;
+  pointer-events: auto;
+  position: absolute;
+  top: var(--stack-offset, 0);
+  left: var(--stack-inset, 0);
+  right: var(--stack-inset, 0);
+  z-index: var(--stack-z, 1);
+  opacity: var(--stack-opacity, 1);
+  transition: top 180ms ease, left 180ms ease, right 180ms ease, opacity 180ms ease;
+}
+.toast:first-child { position: relative; inset: auto; opacity: 1; z-index: 100; }
+.toast:not(:first-child) { max-height: 30px; overflow: hidden; pointer-events: none; }
+.toast-message { flex: 1; }
+.toast-close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-muted);
+  font: 800 24px/28px 'Nunito', sans-serif;
+  cursor: pointer;
+}
+.toast-close:hover { background: rgba(255, 255, 255, 0.5); }
+.toast-close:focus-visible { outline: 3px solid var(--aqua); outline-offset: 1px; }
+@keyframes toast-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+
 /* Appear: children rise in, 60 ms apart, when the view changes */
 .fresh .appear { animation: appear 320ms ease-out both; }
 @keyframes appear { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }

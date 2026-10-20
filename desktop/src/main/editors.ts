@@ -54,6 +54,15 @@ function first(editor: { id: string; name: string; cli: string[] }, appOf: (cli:
 
 export type RunEditorCli = (cli: string, args: string[]) => Promise<string>;
 
+/** Local builds and packaged Desktop carry the VSIX until the extension is available in editor marketplaces. */
+export function extensionSource(resources: string, developmentVsix: string, env: NodeJS.ProcessEnv = process.env): string {
+  if (env.TUDI_VSIX) return env.TUDI_VSIX;
+  const bundled = join(resources, 'extensions', 'tudi-tracker.vsix');
+  if (existsSync(bundled)) return bundled;
+  if (existsSync(developmentVsix)) return developmentVsix;
+  return EXTENSION_ID;
+}
+
 /** Each installed editor, and whether the Tudi Tracker extension is already in it. */
 export async function findEditors(run: RunEditorCli = runEditorCli, candidates = editorCandidates()): Promise<Editor[]> {
   return Promise.all(
@@ -69,8 +78,7 @@ export async function findEditors(run: RunEditorCli = runEditorCli, candidates =
 }
 
 /**
- * Installs the extension from the editor's own marketplace. TUDI_VSIX points a development build at a local .vsix
- * until the extension is published.
+ * Installs the resolved local/bundled VSIX; the marketplace id is only the final fallback after publication.
  */
 export async function installExtension(editor: EditorCandidate, run: RunEditorCli = runEditorCli, source = process.env.TUDI_VSIX || EXTENSION_ID): Promise<void> {
   await run(editor.cli, ['--install-extension', source, '--force']);
