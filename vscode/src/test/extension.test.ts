@@ -22,7 +22,7 @@ const fake = {
 const load = (Module as unknown as { _load: (request: string, ...rest: unknown[]) => unknown })._load;
 (Module as unknown as { _load: unknown })._load = (request: string, ...rest: unknown[]) => (request === 'vscode' ? fake : load(request, ...rest));
 
-test('without Tudi Desktop the extension asks for setup; once signed in it shows Tudi', async () => {
+test('without Commit Kingdom Desktop the extension asks for setup; once signed in it shows Kingdom', async () => {
   const home = mkdtempSync(join(tmpdir(), 'tudi-ext-home-'));
   process.env.TUDI_HOME = home;
   const { activate } = await import('../extension');
@@ -30,18 +30,18 @@ test('without Tudi Desktop the extension asks for setup; once signed in it shows
   activate(context as never);
 
   await new Promise(resolve => setTimeout(resolve, 50));
-  assert.equal(status.text, '$(flame) Tudi: set up');
+  assert.equal(status.text, '$(flame) Commit Kingdom: set up');
   assert.equal(status.command, 'tudi.setup');
   assert.equal(commands.has('tudi.link'), false);
   await commands.get('tudi.setup')!();
   assert.deepEqual(opened, ['https://tudidaily.com/tracker']);
 
-  // Tudi Desktop signs in; tudi-cli is not installed here, so the status points back to Tudi Desktop.
+  // Commit Kingdom Desktop signs in; tudi-cli is not installed here, so the status points back to Commit Kingdom Desktop.
   writeFileSync(join(home, '.tudi.cfg'), '[settings]\napi_key = 3f2c0c1e-1111-4222-8333-444455556666\n');
   await commands.get('tudi.today')!();
   assert.equal(status.command, 'tudi.today');
-  assert.equal(status.text, '$(flame) Tudi');
-  assert.match(status.tooltip, /Tudi Desktop/);
+  assert.equal(status.text, '$(flame) Kingdom');
+  assert.match(status.tooltip, /Commit Kingdom Desktop/);
 
   for (const item of context.subscriptions) item.dispose();
 });

@@ -65,7 +65,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on('before-quit', () => {
     quitting = true;
   });
-  // Tudi Desktop lives in the tray: closing the window does not quit it.
+  // Commit Kingdom Desktop lives in the tray: closing the window does not quit it.
   app.on('window-all-closed', () => undefined);
 }
 
@@ -118,8 +118,8 @@ async function startSignIn(): Promise<void> {
       signal: signInAbort.signal,
       openBrowser: url => shell.openExternal(url),
       pages: tr
-        ? { done: 'Bu bilgisayar bağlandı. Tudi Desktop’a dönebilirsin.', cancelled: 'Giriş iptal edildi.', failed: 'Bu bağlantı artık geçerli değil.' }
-        : { done: 'This computer is signed in. You can go back to Tudi Desktop.', cancelled: 'Sign-in was cancelled.', failed: 'This link is no longer valid.' },
+        ? { done: 'Bu bilgisayar bağlandı. Commit Kingdom Desktop’a dönebilirsin.', cancelled: 'Giriş iptal edildi.', failed: 'Bu bağlantı artık geçerli değil.' }
+        : { done: 'This computer is signed in. You can go back to Commit Kingdom Desktop.', cancelled: 'Sign-in was cancelled.', failed: 'This link is no longer valid.' },
     });
     saveDevice(signed);
     writeCliKey(paths, signed.apiKey, cliApiUrl());
@@ -138,7 +138,7 @@ async function startSignIn(): Promise<void> {
   }
 }
 
-/** tudi-cli comes with Tudi Desktop; the copy the editors use is kept the same as the one in the app. */
+/** tudi-cli comes with Commit Kingdom Desktop; the copy the editors use is kept the same as the one in the app. */
 function installCli(): void {
   const resources = app.isPackaged ? process.resourcesPath : join(__dirname, '..', '..', 'resources');
   try {
@@ -273,10 +273,16 @@ function fail(error: NonNullable<View['error']>): void {
   set({ error, errorId: view.errorId + 1 });
 }
 
-/** Tudi stays on screen while this computer is signed in and the member has not hidden it. */
+/**
+ * The always-on-top character window is switched off (ADR-034: Commit Kingdom has no mascot; a king may replace it).
+ * The window code and art stay in place; flip this to bring a character back.
+ */
+const MASCOT_ENABLED = false;
+
+/** The character stays on screen while this computer is signed in and the member has not hidden it. */
 function updateMascot(): void {
   if (!settings) return;
-  if (view.phase !== 'signedIn' || !settings.showMascot) return mascot.hide();
+  if (!MASCOT_ENABLED || view.phase !== 'signedIn' || !settings.showMascot) return mascot.hide();
   const cheering = Date.now() < cheerUntil;
   const mood: Mood = cheering ? 'cheering' : moodOf(view.summary?.lastHeartbeatAt, new Date());
   if (cheering) setTimeout(updateMascot, cheerUntil - Date.now() + 20);
@@ -306,7 +312,7 @@ function showWindow(): void {
       maximizable: false,
       fullscreenable: false,
       show: false,
-      title: 'Tudi Desktop',
+      title: 'Commit Kingdom Desktop',
       icon: iconPath(),
       autoHideMenuBar: true,
       webPreferences: { preload: join(__dirname, '..', 'preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false },
@@ -335,7 +341,7 @@ function showWindow(): void {
 
 function createTray(): void {
   tray = new Tray(nativeImage.createFromPath(iconPath()).resize({ width: 16, height: 16 }));
-  tray.setToolTip('Tudi Desktop');
+  tray.setToolTip('Commit Kingdom Desktop');
   tray.on('click', showWindow);
   updateTray();
 }
@@ -348,9 +354,11 @@ function updateTray(): void {
     Menu.buildFromTemplate([
       { label: view.phase === 'signedIn' ? (tr ? `Bugün ${minutes} dk` : `Today ${minutes} min`) : tr ? 'Giriş yapılmadı' : 'Not signed in', enabled: false },
       { type: 'separator' },
-      { label: tr ? 'Tudi Desktop’ı aç' : 'Open Tudi Desktop', click: showWindow },
-      { label: tr ? 'Tudi Daily’yi aç' : 'Open Tudi Daily', click: () => void shell.openExternal(appUrl) },
-      { label: tr ? 'Ekranda Tudi' : 'Tudi on screen', type: 'checkbox', checked: settings?.showMascot ?? true, enabled: view.phase === 'signedIn', click: item => toggleMascot(item.checked) },
+      { label: tr ? 'Commit Kingdom Desktop’ı aç' : 'Open Commit Kingdom Desktop', click: showWindow },
+      { label: tr ? 'Commit Kingdom’ı aç' : 'Open Commit Kingdom', click: () => void shell.openExternal(appUrl) },
+      ...(MASCOT_ENABLED
+        ? [{ label: tr ? 'Ekranda karakter' : 'Character on screen', type: 'checkbox' as const, checked: settings?.showMascot ?? false, enabled: view.phase === 'signedIn', click: (item: Electron.MenuItem) => toggleMascot(item.checked) }]
+        : []),
       { type: 'separator' },
       ...(updateReady
         ? [{ label: tr ? `Güncelle ve yeniden başlat (${updateReady})` : `Restart to update (${updateReady})`, click: restartToUpdate }, { type: 'separator' as const }]

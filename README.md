@@ -1,8 +1,10 @@
-# Tudi Tracker
+# Commit Kingdom Tracker
 
-The open-source coding tracker behind [Tudi Daily](https://tudidaily.com), the RPG where the code you write levels up your character.
+The open-source coding tracker behind [Commit Kingdom](https://tudidaily.com), the strategy game where your commits build your kingdom.
 
-Tudi Tracker counts **when** you code, **in which language**, **how many lines changed** and **how many of them an AI tool wrote**. That is all that leaves your computer. File names, file paths, branches, dependencies and your real project names never do; a project is sent only as a salted one-way hash that is different on every computer.
+> Formerly Tudi Tracker. For compatibility with existing installs, the CLI keeps the name `tudi-cli`, its files stay in `~/.tudi` and `~/.tudi.cfg`, `TUDI_HOME` still selects another folder, and the extension, plugin and app ids, setting keys and command ids are unchanged. The desktop installers keep their `TudiDesktop-*` file names so existing download links keep working.
+
+Commit Kingdom Tracker counts **when** you code, **in which language**, **how many lines changed** and **how many of them an AI tool wrote**. That is all that leaves your computer. File names, file paths, branches, dependencies and your real project names never do; a project is sent only as a salted one-way hash that is different on every computer.
 
 This repository is open so you can check exactly what is sent.
 
@@ -10,8 +12,8 @@ This repository is open so you can check exactly what is sent.
 
 | Folder | What |
 |---|---|
-| `desktop/` | Tudi Desktop (Electron, MIT): signs this computer in with your Tudi Daily account, shows today's coding and keeps a small Tudi on screen that watches, waits, naps and cheers with you |
-| `cli/` | `tudi-cli`, a fork of [wakatime-cli](https://github.com/wakatime/wakatime-cli) (BSD-3-Clause) pointed at Tudi Daily, with an always-on privacy step |
+| `desktop/` | Commit Kingdom Desktop (Electron, MIT): signs this computer in with your Commit Kingdom account and shows today's coding |
+| `cli/` | `tudi-cli`, a fork of [wakatime-cli](https://github.com/wakatime/wakatime-cli) (BSD-3-Clause) pointed at Commit Kingdom, with an always-on privacy step |
 | `vscode/` | The extension for the VS Code family (VS Code, Cursor, Windsurf, VSCodium, Antigravity) |
 | `jetbrains/` | The plugin for JetBrains IDEs 2024.2 and later (IntelliJ IDEA, PyCharm, WebStorm, Rider, GoLand, Android Studio…) |
 
@@ -19,12 +21,12 @@ Editor extensions call `tudi-cli` the same way WakaTime plugins call `wakatime-c
 
 ## Sign your computer in
 
-1. Install Tudi Desktop and click **Sign in**. Your browser opens Tudi Daily; approve this computer there.
-2. Tudi Desktop gets a device key for this computer. It keeps the key encrypted with your operating system's key store and writes it to `~/.tudi.cfg` for `tudi-cli` (set `TUDI_HOME` to use another folder).
+1. Install Commit Kingdom Desktop and click **Sign in**. Your browser opens Commit Kingdom; approve this computer there.
+2. Commit Kingdom Desktop gets a device key for this computer. It keeps the key encrypted with your operating system's key store and writes it to `~/.tudi.cfg` for `tudi-cli` (set `TUDI_HOME` to use another folder).
 
-The key can only write coding activity. Signing out of Tudi Desktop, or removing the computer in the app's Code Tower, turns it off.
+The key can only write coding activity. Signing out of Commit Kingdom Desktop, or removing the computer in the app's Code Tower, turns it off.
 
-3. Tudi Desktop carries `tudi-cli` and puts it in `~/.tudi`; each Tudi Desktop update brings the matching `tudi-cli`. It finds the VS Code family editors on the computer by their install folders and installs the Tudi Tracker extension in each with one click. The extension never asks you to sign in: it uses the key Tudi Desktop wrote and sends nothing until there is one. The JetBrains plugin works the same way.
+3. Commit Kingdom Desktop carries `tudi-cli` and puts it in `~/.tudi`; each Commit Kingdom Desktop update brings the matching `tudi-cli`. It finds the VS Code family editors on the computer by their install folders and installs the Commit Kingdom Tracker extension in each with one click. The extension never asks you to sign in: it uses the key Commit Kingdom Desktop wrote and sends nothing until there is one. The JetBrains plugin works the same way.
 
 ## What changed from wakatime-cli
 
@@ -44,9 +46,9 @@ go build -o ../bin/tudi-cli .
 go test ./...
 ```
 
-The upstream tests expect what tudi-cli sends: hidden file names, hashed projects, no AI session ids, the Tudi Daily API. The AI parsing tests read dated log fixtures, so they run without the one-day lookback, which has its own test. File experts needs a file path, so tudi-cli never asks for them. `.github/workflows/cli.yml` runs the tests on Linux, Windows and macOS, and a Tudi Desktop release runs them before it builds `tudi-cli`.
+The upstream tests expect what tudi-cli sends: hidden file names, hashed projects, no AI session ids, the Commit Kingdom API. The AI parsing tests read dated log fixtures, so they run without the one-day lookback, which has its own test. File experts needs a file path, so tudi-cli never asks for them. `.github/workflows/cli.yml` runs the tests on Linux, Windows and macOS, and a Commit Kingdom Desktop release runs them before it builds `tudi-cli`.
 
-Tudi Desktop (`build:cli` puts this platform's `tudi-cli` in `desktop/resources/bin/`; pass targets such as `darwin-arm64 win32-x64` to build others):
+Commit Kingdom Desktop (`build:cli` puts this platform's `tudi-cli` in `desktop/resources/bin/`; pass targets such as `darwin-arm64 win32-x64` to build others):
 
 ```sh
 cd desktop
@@ -67,7 +69,7 @@ npm test
 npm run package
 ```
 
-The JetBrains plugin (Java 21; it behaves like the VS Code extension: the key comes from Tudi Desktop, heartbeats go through `tudi-cli`, the status bar shows today). `buildPlugin` puts the installable zip in `jetbrains/build/distributions/`; until it is on JetBrains Marketplace, install it with *Settings → Plugins → ⚙ → Install Plugin from Disk*:
+The JetBrains plugin (Java 21; it behaves like the VS Code extension: the key comes from Commit Kingdom Desktop, heartbeats go through `tudi-cli`, the status bar shows today). `buildPlugin` puts the installable zip in `jetbrains/build/distributions/`; until it is on JetBrains Marketplace, install it with *Settings → Plugins → ⚙ → Install Plugin from Disk*:
 
 ```sh
 cd jetbrains

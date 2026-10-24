@@ -144,10 +144,10 @@ public final class TudiTracker implements Disposable {
             }
             try {
                 String today = TudiCli.run(List.of("--today"), settings(), TODAY_TIMEOUT_MS);
-                setStatus(new Status(true, today.isEmpty() ? "Tudi" : today, "Tudi Tracker: today"));
+                setStatus(new Status(true, today.isEmpty() ? "Kingdom" : today, "Commit Kingdom Tracker: today"));
             } catch (IOException e) {
                 // Signed in, but tudi-cli is missing or cannot answer: Tudi Desktop installs and updates it.
-                setStatus(new Status(true, "Tudi", "Tudi Tracker: open Tudi Desktop to finish setting up."));
+                setStatus(new Status(true, "Kingdom", "Commit Kingdom Tracker: open Commit Kingdom Desktop to finish setting up."));
             }
         } finally {
             refreshing.set(false);
@@ -160,7 +160,7 @@ public final class TudiTracker implements Disposable {
     }
 
     private static Status setupStatus() {
-        return new Status(false, "Tudi: set up", "Install Tudi Desktop and sign in to count your coding.");
+        return new Status(false, "Commit Kingdom: set up", "Install Commit Kingdom Desktop and sign in to count your coding.");
     }
 
     private static TudiCli.Settings settings() {

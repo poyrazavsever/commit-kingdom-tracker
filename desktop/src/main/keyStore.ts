@@ -20,7 +20,7 @@ export function loadDevice(): Device | null {
 }
 
 export function saveDevice(device: Device): void {
-  if (!safeStorage.isEncryptionAvailable()) throw new Error('This computer has no secure key store for Tudi Desktop.');
+  if (!safeStorage.isEncryptionAvailable()) throw new Error('This computer has no secure key store for Commit Kingdom Desktop.');
   writeFileSync(file(), safeStorage.encryptString(JSON.stringify(device)), { mode: 0o600 });
 }
 

@@ -13,13 +13,13 @@ public final class TudiConfigurable implements Configurable {
 
     @Override
     public String getDisplayName() {
-        return "Tudi Tracker";
+        return "Commit Kingdom Tracker";
     }
 
     @Override
     public JComponent createComponent() {
         cliPath.getEmptyText().setText("~/.tudi/tudi-cli, then PATH");
-        apiUrl.getEmptyText().setText("Tudi Daily");
+        apiUrl.getEmptyText().setText("Commit Kingdom");
         JPanel panel = FormBuilder.createFormBuilder()
                 .addLabeledComponent("Path to tudi-cli:", cliPath)
                 .addLabeledComponent("API url (development):", apiUrl)

@@ -8,18 +8,18 @@ import { LineCounter } from './lines';
 const TODAY_EVERY_MS = 5 * 60 * 1000;
 
 /**
- * Tudi Tracker for VS Code, Cursor, Windsurf, VSCodium and Antigravity (ADR-024): reports coding to tudi-cli, which
+ * Commit Kingdom Tracker for VS Code, Cursor, Windsurf, VSCodium and Antigravity (ADR-024): reports coding to tudi-cli, which
  * strips everything private before anything leaves the computer. The extension itself never reads file contents.
- * Signing in belongs to Tudi Desktop (ADR-027): it writes the key to tudi-cli's config and installs tudi-cli; until
- * then the extension sends nothing and points to Tudi Desktop.
+ * Signing in belongs to Commit Kingdom Desktop (ADR-027): it writes the key to tudi-cli's config and installs tudi-cli; until
+ * then the extension sends nothing and points to Commit Kingdom Desktop.
  */
 export function activate(context: vscode.ExtensionContext): void {
   const gate = new HeartbeatGate();
   const lines = new LineCounter();
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10);
   status.command = 'tudi.today';
-  status.text = '$(flame) Tudi';
-  status.tooltip = 'Tudi Tracker';
+  status.text = '$(flame) Kingdom';
+  status.tooltip = 'Commit Kingdom Tracker';
   status.show();
 
   const settings = (): CliSettings => {
@@ -40,20 +40,20 @@ export function activate(context: vscode.ExtensionContext): void {
   const refreshToday = async () => {
     signedIn = isSignedIn();
     if (!signedIn) {
-      status.text = '$(flame) Tudi: set up';
-      status.tooltip = 'Install Tudi Desktop and sign in to count your coding.';
+      status.text = '$(flame) Commit Kingdom: set up';
+      status.tooltip = 'Install Commit Kingdom Desktop and sign in to count your coding.';
       status.command = 'tudi.setup';
       return;
     }
     status.command = 'tudi.today';
     try {
       const today = await runCli(['--today'], settings());
-      status.text = `$(flame) ${today || 'Tudi'}`;
-      status.tooltip = 'Tudi Tracker: today';
+      status.text = `$(flame) ${today || 'Kingdom'}`;
+      status.tooltip = 'Commit Kingdom Tracker: today';
     } catch {
-      // Signed in, but tudi-cli is missing or cannot answer: Tudi Desktop installs and updates it.
-      status.text = '$(flame) Tudi';
-      status.tooltip = 'Tudi Tracker: open Tudi Desktop to finish setting up.';
+      // Signed in, but tudi-cli is missing or cannot answer: Commit Kingdom Desktop installs and updates it.
+      status.text = '$(flame) Kingdom';
+      status.tooltip = 'Commit Kingdom Tracker: open Commit Kingdom Desktop to finish setting up.';
     }
   };
 
@@ -72,7 +72,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   void refreshToday();
   const timer = setInterval(() => void refreshToday(), TODAY_EVERY_MS);
-  // Signing in or out in Tudi Desktop shows up within a few seconds.
+  // Signing in or out in Commit Kingdom Desktop shows up within a few seconds.
   const config = configPath();
   watchFile(config, { interval: 5000 }, () => void refreshToday());
   context.subscriptions.push({ dispose: () => clearInterval(timer) }, { dispose: () => unwatchFile(config) });

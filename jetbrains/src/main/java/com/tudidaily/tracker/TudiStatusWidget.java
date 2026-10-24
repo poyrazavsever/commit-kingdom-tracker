@@ -17,7 +17,7 @@ import javax.swing.Icon;
 import javax.swing.JComponent;
 import org.jetbrains.annotations.NotNull;
 
-/** "🔥 Tudi: set up" until Tudi Desktop signs in, then today's coding; a click sets up or refreshes. */
+/** "🔥 Commit Kingdom: set up" until Commit Kingdom Desktop signs in, then today's coding; a click sets up or refreshes. */
 public final class TudiStatusWidget implements CustomStatusBarWidget {
     public static final String ID = "TudiTracker";
     private static final Icon FLAME = IconLoader.getIcon("/icons/flame.svg", TudiStatusWidget.class);
@@ -70,7 +70,7 @@ public final class TudiStatusWidget implements CustomStatusBarWidget {
 
         @Override
         public @NotNull @NlsContexts.ConfigurableName String getDisplayName() {
-            return "Tudi Tracker";
+            return "Commit Kingdom Tracker";
         }
 
         @Override

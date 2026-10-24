@@ -60,7 +60,7 @@ export class DesktopApi {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     if (response.status === 401) throw new KeyRevoked();
-    if (!response.ok) throw new Error(`Tudi Daily answered ${response.status}.`);
+    if (!response.ok) throw new Error(`Commit Kingdom answered ${response.status}.`);
     return response;
   }
 }

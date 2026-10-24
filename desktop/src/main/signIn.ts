@@ -103,7 +103,7 @@ function waitForCode(options: SignInOptions, challenge: string, state: string): 
 
 function reply(response: ServerResponse<IncomingMessage>, status: number, message: string): void {
   const body = message
-    ? `<!doctype html><meta charset="utf-8"><title>Tudi Desktop</title><body style="font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:90vh;margin:0"><p>${escapeHtml(message)}</p></body>`
+    ? `<!doctype html><meta charset="utf-8"><title>Commit Kingdom Desktop</title><body style="font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:90vh;margin:0"><p>${escapeHtml(message)}</p></body>`
     : '';
   response.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', Connection: 'close' });
   response.end(body);

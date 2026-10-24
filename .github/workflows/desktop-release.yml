@@ -1,4 +1,4 @@
-# Builds Tudi Desktop with its tudi-cli and publishes it to GitHub Releases, where installed copies update from.
+# Builds Commit Kingdom Desktop with its tudi-cli and publishes it to GitHub Releases, where installed copies update from.
 # Start a release by pushing a tag that matches desktop/package.json's version: `git tag desktop-v0.1.0 && git push --tags`.
 #
 # Signing:
@@ -6,7 +6,7 @@
 #   certificate as base64 .p12; APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID for notarisation).
 # - Windows: Certum SimplySign signs with the founder's session (ADR-027), so a signed Windows build is made on the
 #   founder's machine and uploaded to the same release. Until the certificate exists the CI build is unsigned.
-name: Tudi Desktop release
+name: Commit Kingdom Desktop release
 
 on:
   push:
@@ -45,7 +45,7 @@ jobs:
           cache-dependency-path: desktop/package-lock.json
       - run: npm ci
       - run: npm --prefix ../vscode ci
-      # The tudi-cli that ships inside Tudi Desktop must pass its tests first.
+      # The tudi-cli that ships inside Commit Kingdom Desktop must pass its tests first.
       - run: go test ./...
         working-directory: cli
       - run: npm run build:extension

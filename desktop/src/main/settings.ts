@@ -5,7 +5,7 @@ import { app } from 'electron';
 /** The member's own choices; nothing secret lives here. */
 export type Settings = { showMascot: boolean; mascotIntroSeen: boolean };
 
-const defaults: Settings = { showMascot: true, mascotIntroSeen: false };
+const defaults: Settings = { showMascot: false, mascotIntroSeen: false };
 const file = () => join(app.getPath('userData'), 'settings.json');
 
 export function loadSettings(): Settings {

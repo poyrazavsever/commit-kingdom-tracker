@@ -1,5 +1,5 @@
-# Tests tudi-cli on the three systems Tudi Desktop ships it for. The upstream tests are adapted to Tudi's behaviour
-# (privacy step, one-day AI lookback, Tudi Daily API); every change is marked with a tudi-tracker comment.
+# Tests tudi-cli on the three systems Commit Kingdom Desktop ships it for. The upstream tests are adapted to Commit Kingdom's behaviour
+# (privacy step, one-day AI lookback, Commit Kingdom API); every change is marked with a tudi-tracker comment.
 name: tudi-cli
 
 on:

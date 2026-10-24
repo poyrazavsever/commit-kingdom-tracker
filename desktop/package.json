@@ -1,7 +1,7 @@
 {
   "name": "tudi-desktop",
-  "productName": "Tudi Desktop",
-  "description": "Signs this computer in to Tudi Daily, sets up tudi-cli and shows today's coding.",
+  "productName": "Commit Kingdom Desktop",
+  "description": "Signs this computer in to Commit Kingdom, sets up tudi-cli and shows today's coding.",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -26,7 +26,7 @@
     "electron-updater": "6.8.9"
   },
   "author": {
-    "name": "Tudi Daily",
+    "name": "Commit Kingdom",
     "email": "merhaba@tudidaily.com"
   },
   "homepage": "https://tudidaily.com/tracker",
@@ -36,8 +36,8 @@
   },
   "build": {
     "appId": "com.tudidaily.desktop",
-    "productName": "Tudi Desktop",
-    "copyright": "Copyright (c) 2026 Tudi Daily",
+    "productName": "Commit Kingdom Desktop",
+    "copyright": "Copyright (c) 2026 Commit Kingdom",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -73,7 +73,7 @@
       "oneClick": true,
       "perMachine": false,
       "artifactName": "TudiDesktop-Setup.${ext}",
-      "shortcutName": "Tudi Desktop",
+      "shortcutName": "Commit Kingdom Desktop",
       "deleteAppDataOnUninstall": false
     },
     "mac": {

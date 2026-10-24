@@ -1,7 +1,7 @@
 {
   "name": "tudi-tracker",
-  "displayName": "Tudi Tracker",
-  "description": "Counts your coding for Tudi Daily, the RPG where your code levels up your character. Sign in with Tudi Desktop; only time, language and line counts are sent.",
+  "displayName": "Commit Kingdom Tracker",
+  "description": "Counts your coding for Commit Kingdom, the strategy game where your commits build your kingdom. Sign in with Commit Kingdom Desktop; only time, language and line counts are sent.",
   "version": "0.1.0",
   "publisher": "tudidaily",
   "license": "MIT",
@@ -29,15 +29,15 @@
     "commands": [
       {
         "command": "tudi.setup",
-        "title": "Tudi: Set up with Tudi Desktop"
+        "title": "Commit Kingdom: Set up with Commit Kingdom Desktop"
       },
       {
         "command": "tudi.today",
-        "title": "Tudi: Show today's coding"
+        "title": "Commit Kingdom: Show today's coding"
       }
     ],
     "configuration": {
-      "title": "Tudi Tracker",
+      "title": "Commit Kingdom Tracker",
       "properties": {
         "tudi.cliPath": {
           "type": "string",
@@ -47,7 +47,7 @@
         "tudi.apiUrl": {
           "type": "string",
           "default": "",
-          "description": "API url for development; empty uses Tudi Daily."
+          "description": "API url for development; empty uses Commit Kingdom."
         }
       }
     }

@@ -1,12 +1,12 @@
-// Draws the state Tudi Desktop's main process sends (src/main/main.ts). Plain DOM, no frameworks.
+// Draws the state Commit Kingdom Desktop's main process sends (src/main/main.ts). Plain DOM, no frameworks.
 (() => {
   const text = {
     en: {
-      title: 'Tudi Desktop',
-      signedOutBody: 'Sign in with your Tudi Daily account. Your coding on this computer then powers your Tudi.',
+      title: 'Commit Kingdom Desktop',
+      signedOutBody: 'Sign in with your Commit Kingdom account. Your coding on this computer then powers your kingdom.',
       signIn: 'Sign in',
       waitingTitle: 'Approve in your browser',
-      waitingBody: 'A Tudi Daily page opened in your browser. Approve this computer there.',
+      waitingBody: 'A Commit Kingdom page opened in your browser. Approve this computer there.',
       cancel: 'Cancel',
       computer: 'This computer',
       save: 'Save',
@@ -28,19 +28,19 @@
       noEditors: 'No VS Code, Cursor, Windsurf, VSCodium or Antigravity found on this computer.',
       errors: {
         install: 'The extension could not be installed. Try again.',
-        cli: 'Tudi’s tracker could not be set up on this computer. Reinstall Tudi Desktop.',
+        cli: 'The Commit Kingdom tracker could not be set up on this computer. Reinstall Commit Kingdom Desktop.',
         signIn: 'The sign-in did not finish. Try again.',
-        offline: 'Tudi Daily cannot be reached. Your coding is kept and sent later.',
-        keyStore: 'This computer has no secure key store, so Tudi Desktop cannot keep your sign-in.',
+        offline: 'Commit Kingdom cannot be reached. Your coding is kept and sent later.',
+        keyStore: 'This computer has no secure key store, so Commit Kingdom Desktop cannot keep your sign-in.',
         rename: 'The name could not be saved.',
       },
     },
     tr: {
-      title: 'Tudi Desktop',
-      signedOutBody: 'Tudi Daily hesabınla giriş yap. Bu bilgisayarda yazdığın kod Tudi’nin gücü olur.',
+      title: 'Commit Kingdom Desktop',
+      signedOutBody: 'Commit Kingdom hesabınla giriş yap. Bu bilgisayarda yazdığın kod krallığının gücü olur.',
       signIn: 'Giriş yap',
       waitingTitle: 'Tarayıcında onayla',
-      waitingBody: 'Tarayıcında bir Tudi Daily sayfası açıldı. Bu bilgisayarı orada onayla.',
+      waitingBody: 'Tarayıcında bir Commit Kingdom sayfası açıldı. Bu bilgisayarı orada onayla.',
       cancel: 'Vazgeç',
       computer: 'Bu bilgisayar',
       save: 'Kaydet',
@@ -62,10 +62,10 @@
       noEditors: 'Bu bilgisayarda VS Code, Cursor, Windsurf, VSCodium ya da Antigravity bulunamadı.',
       errors: {
         install: 'Eklenti kurulamadı. Yeniden dene.',
-        cli: 'Tudi’nin sayacı bu bilgisayara kurulamadı. Tudi Desktop’ı yeniden kur.',
+        cli: 'Commit Kingdom sayacı bu bilgisayara kurulamadı. Commit Kingdom Desktop’ı yeniden kur.',
         signIn: 'Giriş tamamlanmadı. Yeniden dene.',
-        offline: 'Tudi Daily’ye ulaşılamıyor. Kodun saklanıyor, sonra gönderilecek.',
-        keyStore: 'Bu bilgisayarda güvenli anahtar deposu yok; Tudi Desktop girişini saklayamıyor.',
+        offline: 'Commit Kingdom’a ulaşılamıyor. Kodun saklanıyor, sonra gönderilecek.',
+        keyStore: 'Bu bilgisayarda güvenli anahtar deposu yok; Commit Kingdom Desktop girişini saklayamıyor.',
         rename: 'Ad kaydedilemedi.',
       },
     },
