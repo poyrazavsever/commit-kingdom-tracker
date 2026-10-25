@@ -9,10 +9,7 @@ import { editorIcon } from './editorIcons';
 import { editorCandidates, extensionSource, findEditors, installExtension } from './editors';
 import { findJetBrainsIdes, installPlugin } from './jetbrains';
 import { forgetDevice, loadDevice, saveDevice } from './keyStore';
-import { Mascot } from './mascot';
 import { syncDue, syncQueue } from './queue';
-import { CHEER_MS, type Mood, moodOf, shouldCheer } from './mood';
-import { loadSettings, saveSettings, type Settings } from './settings';
 import { restartToUpdate, startUpdates } from './updater';
 import { type Device, signIn, SignInCancelled } from './signIn';
 
@@ -33,10 +30,7 @@ type View = {
 };
 
 const REFRESH_MS = 60_000;
-/** Moods follow the clock between refreshes (watching → waiting → asleep). */
-const MOOD_TICK_MS = 15_000;
 const paths = cliPaths();
-const mascot = new Mascot();
 
 let window: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -44,8 +38,6 @@ let device: Device | null = null;
 let signInAbort: AbortController | null = null;
 let refreshTimer: NodeJS.Timeout | null = null;
 let quitting = false;
-let settings: Settings;
-let cheerUntil = 0;
 /** A downloaded update waiting for a restart. */
 let updateReady: string | null = null;
 const view: View = { phase: 'signedOut', locale: 'en', deviceName: '', summary: null, editors: null, error: null, errorId: 0 };
@@ -71,7 +63,6 @@ if (!app.requestSingleInstanceLock()) {
 
 function start(): void {
   view.locale = app.getLocale().toLowerCase().startsWith('tr') ? 'tr' : 'en';
-  settings = loadSettings();
   if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: true });
   if (process.platform === 'darwin') app.dock?.hide();
 
@@ -87,7 +78,6 @@ function start(): void {
   registerIpc();
   createTray();
   showWindow();
-  setInterval(updateMascot, MOOD_TICK_MS);
   startUpdates(version => {
     updateReady = version;
     updateTray();
@@ -212,7 +202,6 @@ async function refresh(): Promise<void> {
   }
   try {
     const summary = await new DesktopApi(apiUrl, device.apiKey).summary();
-    if (view.summary && shouldCheer(view.summary, summary)) cheerUntil = Date.now() + CHEER_MS;
     if (summary.deviceName !== device.name) {
       device = { ...device, name: summary.deviceName };
       saveDevice(device);
@@ -266,39 +255,10 @@ function set(change: Partial<View>): void {
   Object.assign(view, change);
   window?.webContents.send('state', view);
   updateTray();
-  updateMascot();
 }
 
 function fail(error: NonNullable<View['error']>): void {
   set({ error, errorId: view.errorId + 1 });
-}
-
-/**
- * The always-on-top character window is switched off (ADR-034: Commit Kingdom has no mascot; a king may replace it).
- * The window code and art stay in place; flip this to bring a character back.
- */
-const MASCOT_ENABLED = false;
-
-/** The character stays on screen while this computer is signed in and the member has not hidden it. */
-function updateMascot(): void {
-  if (!settings) return;
-  if (!MASCOT_ENABLED || view.phase !== 'signedIn' || !settings.showMascot) return mascot.hide();
-  const cheering = Date.now() < cheerUntil;
-  const mood: Mood = cheering ? 'cheering' : moodOf(view.summary?.lastHeartbeatAt, new Date());
-  if (cheering) setTimeout(updateMascot, cheerUntil - Date.now() + 20);
-  const intro = !settings.mascotIntroSeen;
-  mascot.show({ mood, intro, locale: view.locale });
-  if (intro) {
-    settings = { ...settings, mascotIntroSeen: true };
-    saveSettings(settings);
-  }
-}
-
-function toggleMascot(show: boolean): void {
-  settings = { ...settings, showMascot: show };
-  saveSettings(settings);
-  updateMascot();
-  updateTray();
 }
 
 function showWindow(): void {
@@ -356,9 +316,6 @@ function updateTray(): void {
       { type: 'separator' },
       { label: tr ? 'Commit Kingdom Desktop’ı aç' : 'Open Commit Kingdom Desktop', click: showWindow },
       { label: tr ? 'Commit Kingdom’ı aç' : 'Open Commit Kingdom', click: () => void shell.openExternal(appUrl) },
-      ...(MASCOT_ENABLED
-        ? [{ label: tr ? 'Ekranda karakter' : 'Character on screen', type: 'checkbox' as const, checked: settings?.showMascot ?? false, enabled: view.phase === 'signedIn', click: (item: Electron.MenuItem) => toggleMascot(item.checked) }]
-        : []),
       { type: 'separator' },
       ...(updateReady
         ? [{ label: tr ? `Güncelle ve yeniden başlat (${updateReady})` : `Restart to update (${updateReady})`, click: restartToUpdate }, { type: 'separator' as const }]

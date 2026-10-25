@@ -12,7 +12,7 @@
     "build:extension": "npm --prefix ../vscode run package",
     "build:cli": "node scripts/build-cli.mjs",
     "start": "npm run build:extension && tsc -p . && electron .",
-    "test": "tsc -p . && node --test out/test/signIn.test.js out/test/mood.test.js out/test/setup.test.js out/test/queue.test.js out/test/jetbrains.test.js",
+    "test": "tsc -p . && node --test out/test/signIn.test.js out/test/setup.test.js out/test/queue.test.js out/test/jetbrains.test.js",
     "dist": "npm run build:extension && tsc -p . && electron-builder",
     "dist:dir": "npm run build:extension && tsc -p . && electron-builder --dir"
   },
@@ -32,7 +32,7 @@
   "homepage": "https://tudidaily.com/tracker",
   "repository": {
     "type": "git",
-    "url": "https://github.com/poyrazavsever/tudi-tracker"
+    "url": "https://github.com/poyrazavsever/commit-kingdom-tracker"
   },
   "build": {
     "appId": "com.tudidaily.desktop",
