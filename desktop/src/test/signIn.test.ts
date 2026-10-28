@@ -1,10 +1,10 @@
 import { strict as assert } from 'node:assert';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { clearCliKey, cliKey, cliPaths, markAiStart, writeCliKey } from '../main/cliConfig';
+import { clearCliKey, cliKey, cliPaths, machineId, markAiStart, writeCliKey } from '../main/cliConfig';
 import { readIniValue, setIniValues } from '../main/ini';
 import { challengeOf, pkcePair } from '../main/pkce';
 import { connectUrl, signIn, SignInCancelled } from '../main/signIn';
@@ -113,4 +113,22 @@ test('tudi-cli gets the key in ~/.tudi.cfg and the AI start in ~/.tudi', () => {
   assert.equal(readIniValue(readFileSync(paths.internal, 'utf8'), 'internal', 'ai_logs_last_parsed_at'), '2026-10-16T10:00:00.000Z');
   clearCliKey(paths);
   assert.equal(cliKey(paths), undefined);
+});
+
+test('the computer gets one random machine id, kept across keys and sign-outs, never the system host name', () => {
+  const home = mkdtempSync(join(tmpdir(), 'tudi-machine-'));
+  const paths = cliPaths({}, home);
+  assert.equal(machineId(paths), undefined);
+  writeCliKey(paths, 'key-1', null);
+  const id = machineId(paths);
+  assert.match(id ?? '', /^ck-[0-9a-f-]{36}$/);
+  clearCliKey(paths);
+  writeCliKey(paths, 'key-2', null);
+  assert.equal(machineId(paths), id);
+
+  // A hostname the member set by hand is not ours: it is replaced by an id.
+  writeFileSync(paths.config, setIniValues('', 'settings', { hostname: 'MacBook-Pro' }));
+  assert.equal(machineId(paths), undefined);
+  writeCliKey(paths, 'key-3', null);
+  assert.match(machineId(paths) ?? '', /^ck-/);
 });

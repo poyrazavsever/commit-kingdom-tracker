@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -26,7 +27,20 @@ type Paths = ReturnType<typeof cliPaths>;
  * the production API is tudi-cli's default, so the line is removed.
  */
 export function writeCliKey(paths: Paths, apiKey: string, apiUrl: string | null): void {
-  update(paths.config, 'settings', { api_key: apiKey, api_url: apiUrl });
+  update(paths.config, 'settings', { api_key: apiKey, api_url: apiUrl, hostname: machineId(paths) ?? `${MACHINE_PREFIX}${randomUUID()}` });
+}
+
+const MACHINE_PREFIX = 'ck-';
+
+/**
+ * This computer's own id, sent as the machine name (X-Machine-Name) instead of the system's host name: names like
+ * “MacBook-Pro” repeat between people, and a machine seen sending for two accounts holds back raid energy (ADR-024
+ * §13). It is made once, kept on sign-out, so signing in with another account here is still the same machine.
+ */
+export function machineId(paths: Paths): string | undefined {
+  if (!existsSync(paths.config)) return undefined;
+  const value = readIniValue(readFileSync(paths.config, 'utf8'), 'settings', 'hostname');
+  return value?.startsWith(MACHINE_PREFIX) ? value : undefined;
 }
 
 /** On sign-out the key leaves the config; the member's other settings stay. */

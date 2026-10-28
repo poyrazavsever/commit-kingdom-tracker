@@ -2,7 +2,7 @@ import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell, Tray } from 'electron';
 import { DesktopApi, KeyRevoked, type Summary } from './api';
-import { clearCliKey, cliKey, cliPaths, markAiStart, writeCliKey } from './cliConfig';
+import { clearCliKey, cliKey, cliPaths, machineId, markAiStart, writeCliKey } from './cliConfig';
 import { bundledCli, ensureCli } from './cliInstall';
 import { apiUrl, appUrl, DEFAULT_API_URL, heartbeatApiUrl } from './config';
 import { editorIcon } from './editorIcons';
@@ -69,8 +69,9 @@ function start(): void {
   installCli();
   device = loadDevice();
   if (device) {
-    // The key lives here; tudi-cli's copy is put back if the member deleted or edited the config.
-    if (cliKey(paths) !== device.apiKey) writeCliKey(paths, device.apiKey, cliApiUrl());
+    // The key lives here; tudi-cli's copy is put back if the member deleted or edited the config, and computers
+    // signed in before the machine id existed get one.
+    if (cliKey(paths) !== device.apiKey || !machineId(paths)) writeCliKey(paths, device.apiKey, cliApiUrl());
     set({ phase: 'signedIn', deviceName: device.name });
     void refresh();
   }
