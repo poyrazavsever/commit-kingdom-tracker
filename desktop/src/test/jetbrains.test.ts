@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { findJetBrainsIdes, installPlugin, parseFolder, PLUGIN_FOLDER } from '../main/jetbrains';
+import { findJetBrainsIdes, installPlugin, parseFolder, PLUGIN_FOLDER, pluginSource } from '../main/jetbrains';
 
 test('config folders name the product and version', () => {
   assert.deepEqual(parseFolder('PyCharm2025.1'), { product: 'PyCharm', version: [2025, 1] });
@@ -52,4 +52,18 @@ test('installing replaces the plugin folder with the zip’s contents', async ()
   const { existsSync } = await import('node:fs');
   assert.equal(existsSync(join(pluginsDir, PLUGIN_FOLDER, 'old')), false);
   assert.equal(existsSync(join(pluginsDir, PLUGIN_FOLDER, 'lib')), true);
+});
+
+test('the plugin comes from the bundled zip, then a local build, then Marketplace', () => {
+  const root = mkdtempSync(join(tmpdir(), 'tudi-jb-src-'));
+  const resources = join(root, 'resources');
+  const built = join(root, 'distributions');
+  assert.match(pluginSource(resources, built, {}), /^https:\/\/plugins\.jetbrains\.com\//);
+  mkdirSync(built, { recursive: true });
+  writeFileSync(join(built, `${PLUGIN_FOLDER}-0.1.0.zip`), '');
+  assert.equal(pluginSource(resources, built, {}), join(built, `${PLUGIN_FOLDER}-0.1.0.zip`));
+  mkdirSync(join(resources, 'extensions'), { recursive: true });
+  writeFileSync(join(resources, 'extensions', `${PLUGIN_FOLDER}.zip`), '');
+  assert.equal(pluginSource(resources, built, {}), join(resources, 'extensions', `${PLUGIN_FOLDER}.zip`));
+  assert.equal(pluginSource(resources, built, { TUDI_JETBRAINS_ZIP: '/x.zip' }), '/x.zip');
 });

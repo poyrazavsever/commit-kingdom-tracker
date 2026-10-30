@@ -13,7 +13,7 @@ import (
 
 const (
 	// BaseURL is the base url of the wakatime api.
-	BaseURL = "https://api.tudidaily.com/api/tracker/v1" // tudi-tracker: Tudi Daily instead of WakaTime
+	BaseURL = "https://api.commitkingdom.com/api/tracker/v1" // tudi-tracker: Commit Kingdom instead of WakaTime
 	// BaseIPAddrv4 is the base ip address v4 of the wakatime api.
 	BaseIPAddrv4 = "143.244.210.202"
 	// BaseIPAddrv6 is the base ip address v6 of the wakatime api.

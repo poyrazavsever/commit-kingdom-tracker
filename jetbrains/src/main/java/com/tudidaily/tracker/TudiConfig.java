@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
  */
 public final class TudiConfig {
     /** Where Tudi Desktop gets the plugin and the computer signed in. */
-    public static final String SETUP_URL = "https://tudidaily.com/tracker";
+    public static final String SETUP_URL = "https://commitkingdom.com/tracker";
 
     private static final Pattern HEADER = Pattern.compile("^\\s*\\[([^\\]]+)]\\s*$");
     private static final Pattern API_KEY = Pattern.compile("^\\s*api_key\\s*=\\s*\\S+", Pattern.CASE_INSENSITIVE);

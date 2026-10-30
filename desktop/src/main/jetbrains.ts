@@ -144,10 +144,24 @@ async function download(url: string): Promise<string> {
 }
 
 /**
- * Puts the plugin in the IDE's plugins folder; the IDE loads it the next time it starts. TUDI_JETBRAINS_ZIP points a
- * development build at a local zip until the plugin is on JetBrains Marketplace.
+ * Packaged Desktop carries the plugin zip, as it carries the VSIX, so one click works before the plugin is on JetBrains
+ * Marketplace; a local build uses jetbrains/build/distributions when it is there. TUDI_JETBRAINS_ZIP overrides both.
  */
-export async function installPlugin(ide: JetBrainsIde, source = process.env.TUDI_JETBRAINS_ZIP || MARKETPLACE_URL, extract: Extract = extractZip): Promise<void> {
+export function pluginSource(resources: string, developmentDistributions: string, env: NodeJS.ProcessEnv = process.env): string {
+  if (env.TUDI_JETBRAINS_ZIP) return env.TUDI_JETBRAINS_ZIP;
+  const bundled = join(resources, 'extensions', `${PLUGIN_FOLDER}.zip`);
+  if (existsSync(bundled)) return bundled;
+  try {
+    const built = readdirSync(developmentDistributions).filter(name => name.startsWith(PLUGIN_FOLDER) && name.endsWith('.zip')).sort();
+    if (built.length > 0) return join(developmentDistributions, built[built.length - 1]);
+  } catch {
+    // No local build: Marketplace.
+  }
+  return MARKETPLACE_URL;
+}
+
+/** Puts the plugin in the IDE's plugins folder; the IDE loads it the next time it starts. */
+export async function installPlugin(ide: JetBrainsIde, source = MARKETPLACE_URL, extract: Extract = extractZip): Promise<void> {
   const zip = /^https?:/.test(source) ? await download(source) : source;
   try {
     mkdirSync(ide.pluginsDir, { recursive: true });

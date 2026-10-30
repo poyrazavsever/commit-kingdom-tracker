@@ -7,7 +7,7 @@ import { bundledCli, ensureCli } from './cliInstall';
 import { apiUrl, appUrl, DEFAULT_API_URL, heartbeatApiUrl } from './config';
 import { editorIcon } from './editorIcons';
 import { editorCandidates, extensionSource, findEditors, installExtension } from './editors';
-import { findJetBrainsIdes, installPlugin } from './jetbrains';
+import { findJetBrainsIdes, installPlugin, pluginSource } from './jetbrains';
 import { forgetDevice, loadDevice, saveDevice } from './keyStore';
 import { syncDue, syncQueue } from './queue';
 import { restartToUpdate, startUpdates } from './updater';
@@ -181,7 +181,7 @@ async function installInto(id: unknown, refreshAfter = true): Promise<void> {
       const developmentVsix = join(__dirname, '..', '..', '..', 'vscode', 'tudi-tracker.vsix');
       await installExtension(editor, undefined, extensionSource(process.resourcesPath, developmentVsix));
     } else if (ide) {
-      await installPlugin(ide);
+      await installPlugin(ide, pluginSource(process.resourcesPath, join(__dirname, '..', '..', '..', 'jetbrains', 'build', 'distributions')));
       restartIds.add(ide.id);
     }
     if (view.error === 'install') set({ error: null });

@@ -1,6 +1,6 @@
 # Commit Kingdom Tracker
 
-The open-source coding tracker behind [Commit Kingdom](https://tudidaily.com), the strategy game where your commits build your kingdom.
+The open-source coding tracker behind [Commit Kingdom](https://commitkingdom.com), the strategy game where your commits build your kingdom.
 
 > Formerly Tudi Tracker. For compatibility with existing installs, the CLI keeps the name `tudi-cli`, its files stay in `~/.tudi` and `~/.tudi.cfg`, `TUDI_HOME` still selects another folder, and the extension, plugin and app ids, setting keys and command ids are unchanged. The desktop installers keep their `TudiDesktop-*` file names so existing download links keep working.
 
@@ -32,7 +32,7 @@ The key can only write coding activity. Signing out of Commit Kingdom Desktop, o
 
 Upstream: wakatime/wakatime-cli at `bac8eba3b7f10f0a4c23dcc7609277b6be406277`. Every change is marked with a `tudi-tracker` comment.
 
-- Default API: `https://api.tudidaily.com/api/tracker/v1`; config file `~/.tudi.cfg` and its own folder `~/.tudi` for the offline queue, log and state (a WakaTime setup on the same computer is left alone).
+- Default API: `https://api.commitkingdom.com/api/tracker/v1`; config file `~/.tudi.cfg` and its own folder `~/.tudi` for the offline queue, log and state (a WakaTime setup on the same computer is left alone).
 - `pkg/heartbeat/tudi_privacy.go`: runs on every heartbeat after the upstream sanitization, whatever the config says. It removes the file name (keeps the extension), branch, dependencies, line numbers, AI session id and prompt length, and hashes the project name with a per-computer salt (`~/.tudi-salt`).
 - `pkg/ai/tudi_lookback.go`: AI tool logs are read from the moment the computer is signed in and never more than 24 hours back. Upstream starts a first sync in February 2025 and reads every AI session on the computer; on a busy machine that took over 8 minutes, now the first heartbeat after signing in takes about a second.
 

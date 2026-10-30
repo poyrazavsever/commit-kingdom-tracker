@@ -1,13 +1,12 @@
 package com.tudidaily.tracker;
 
 import com.intellij.ide.BrowserUtil;
-import com.intellij.ide.plugins.PluginManagerCore;
+import com.intellij.ide.plugins.PluginManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ApplicationNamesInfo;
 import com.intellij.openapi.components.Service;
-import com.intellij.openapi.extensions.PluginId;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.editor.Document;
@@ -172,7 +171,8 @@ public final class TudiTracker implements Disposable {
     static String pluginName() {
         String ide = ApplicationNamesInfo.getInstance().getProductName().toLowerCase(Locale.ROOT).replace(" ", "");
         String ideVersion = ApplicationInfo.getInstance().getFullVersion().replace(" ", "");
-        var plugin = PluginManagerCore.getPlugin(PluginId.getId(PLUGIN_ID));
+        // getPluginByClass is public API; PluginManagerCore.getPlugin is internal and fails the Marketplace verifier.
+        var plugin = PluginManager.getPluginByClass(TudiTracker.class);
         return ide + "/" + ideVersion + " tudi-jetbrains/" + (plugin == null ? "0" : plugin.getVersion());
     }
 

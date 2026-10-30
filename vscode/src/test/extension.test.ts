@@ -34,7 +34,7 @@ test('without Commit Kingdom Desktop the extension asks for setup; once signed i
   assert.equal(status.command, 'tudi.setup');
   assert.equal(commands.has('tudi.link'), false);
   await commands.get('tudi.setup')!();
-  assert.deepEqual(opened, ['https://tudidaily.com/tracker']);
+  assert.deepEqual(opened, ['https://commitkingdom.com/tracker']);
 
   // Commit Kingdom Desktop signs in; tudi-cli is not installed here, so the status points back to Commit Kingdom Desktop.
   writeFileSync(join(home, '.tudi.cfg'), '[settings]\napi_key = 3f2c0c1e-1111-4222-8333-444455556666\n');

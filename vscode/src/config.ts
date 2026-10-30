@@ -3,7 +3,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 /** Where Tudi Desktop gets the extension and the computer signed in (ADR-027). */
-export const SETUP_URL = 'https://tudidaily.com/tracker';
+export const SETUP_URL = 'https://commitkingdom.com/tracker';
 
 /** tudi-cli's config, written by Tudi Desktop: `<TUDI_HOME or home>/.tudi.cfg` (cli/pkg/ini). */
 export function configPath(env: NodeJS.ProcessEnv = process.env, home = homedir()): string {

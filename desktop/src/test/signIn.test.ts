@@ -22,7 +22,7 @@ test('the PKCE challenge is the S256 of the verifier, encoded the way the API ch
 });
 
 test('the connect page gets the challenge, a loopback return address, the state and the computer name', () => {
-  const url = new URL(connectUrl('https://app.tudidaily.com', { challenge: 'c', redirect: 'http://127.0.0.1:5000/callback', state: 's', device: 'Ada’s laptop' }));
+  const url = new URL(connectUrl('https://app.commitkingdom.com', { challenge: 'c', redirect: 'http://127.0.0.1:5000/callback', state: 's', device: 'Ada’s laptop' }));
   assert.equal(url.pathname, '/desktop/connect');
   assert.equal(url.searchParams.get('redirect'), 'http://127.0.0.1:5000/callback');
   assert.equal(url.searchParams.get('device'), 'Ada’s laptop');

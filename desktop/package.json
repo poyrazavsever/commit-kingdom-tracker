@@ -11,6 +11,7 @@
     "build": "tsc -p .",
     "build:extension": "npm --prefix ../vscode run package",
     "build:cli": "node scripts/build-cli.mjs",
+    "build:jetbrains": "node scripts/build-jetbrains.mjs",
     "start": "npm run build:extension && tsc -p . && electron .",
     "test": "tsc -p . && node --test out/test/signIn.test.js out/test/setup.test.js out/test/queue.test.js out/test/jetbrains.test.js",
     "dist": "npm run build:extension && tsc -p . && electron-builder",
@@ -27,9 +28,9 @@
   },
   "author": {
     "name": "Commit Kingdom",
-    "email": "merhaba@tudidaily.com"
+    "email": "merhaba@commitkingdom.com"
   },
-  "homepage": "https://tudidaily.com/tracker",
+  "homepage": "https://commitkingdom.com/tracker",
   "repository": {
     "type": "git",
     "url": "https://github.com/poyrazavsever/commit-kingdom-tracker"
@@ -53,6 +54,13 @@
       {
         "from": "../vscode/tudi-tracker.vsix",
         "to": "extensions/tudi-tracker.vsix"
+      },
+      {
+        "from": "resources/extensions",
+        "to": "extensions",
+        "filter": [
+          "*.zip"
+        ]
       },
       {
         "from": "resources/bin/${platform}-${arch}",
@@ -101,7 +109,8 @@
       {
         "provider": "github",
         "owner": "poyrazavsever",
-        "repo": "tudi-tracker",
+        "repo": "commit-kingdom-tracker",
+        "tagNamePrefix": "desktop-v",
         "releaseType": "release"
       }
     ]

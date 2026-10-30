@@ -6,6 +6,10 @@
 #   certificate as base64 .p12; APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID for notarisation).
 # - Windows: Certum SimplySign signs with the founder's session (ADR-027), so a signed Windows build is made on the
 #   founder's machine and uploaded to the same release. Until the certificate exists the CI build is unsigned.
+#
+# Editor extensions: the JetBrains plugin is built once and carried inside Desktop (as the VSIX is), and both are
+# attached to the release for installing by hand. Each marketplace is published to only when its token exists:
+# VSCE_PAT (Visual Studio Marketplace, publisher tudidaily), OVSX_PAT (Open VSX), JETBRAINS_MARKETPLACE_TOKEN.
 name: Commit Kingdom Desktop release
 
 on:
@@ -17,7 +21,31 @@ permissions:
   contents: write
 
 jobs:
+  jetbrains:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jetbrains
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew test buildPlugin
+      - run: cp build/distributions/*.zip tudi-tracker-jetbrains.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jetbrains-plugin
+          path: jetbrains/tudi-tracker-jetbrains.zip
+      - name: Publish to JetBrains Marketplace (when the token exists)
+        env:
+          JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
+        run: if [ -n "$JETBRAINS_MARKETPLACE_TOKEN" ]; then ./gradlew publishPlugin; else echo "No JETBRAINS_MARKETPLACE_TOKEN: skipped"; fi
+
   build:
+    needs: jetbrains
     strategy:
       fail-fast: false
       matrix:
@@ -49,6 +77,11 @@ jobs:
       - run: go test ./...
         working-directory: cli
       - run: npm run build:extension
+      - uses: actions/download-artifact@v4
+        with:
+          name: jetbrains-plugin
+          path: ${{ runner.temp }}/jetbrains
+      - run: npm run build:jetbrains -- "${{ runner.temp }}/jetbrains/tudi-tracker-jetbrains.zip"
       - run: npm run build:cli -- ${{ matrix.cli }}
       - run: npm test
       - run: npx tsc -p . && npx electron-builder ${{ matrix.target }} --publish always
@@ -61,3 +94,36 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           # No certificate yet: build unsigned instead of failing.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+
+  extensions:
+    needs: build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vscode
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run package
+      - uses: actions/download-artifact@v4
+        with:
+          name: jetbrains-plugin
+          path: ${{ runner.temp }}/jetbrains
+      - name: Attach the extension and the plugin to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" tudi-tracker.vsix "${{ runner.temp }}/jetbrains/tudi-tracker-jetbrains.zip" --clobber
+      - name: Publish to Visual Studio Marketplace (when the token exists)
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: if [ -n "$VSCE_PAT" ]; then npx vsce publish --packagePath tudi-tracker.vsix; else echo "No VSCE_PAT: skipped"; fi
+      - name: Publish to Open VSX (when the token exists)
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: if [ -n "$OVSX_PAT" ]; then npx --yes ovsx@0.10.6 publish tudi-tracker.vsix -p "$OVSX_PAT"; else echo "No OVSX_PAT: skipped"; fi
