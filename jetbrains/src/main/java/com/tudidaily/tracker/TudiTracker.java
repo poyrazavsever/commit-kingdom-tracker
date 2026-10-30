@@ -1,7 +1,6 @@
 package com.tudidaily.tracker;
 
 import com.intellij.ide.BrowserUtil;
-import com.intellij.ide.plugins.PluginManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.application.ApplicationManager;
@@ -171,9 +170,23 @@ public final class TudiTracker implements Disposable {
     static String pluginName() {
         String ide = ApplicationNamesInfo.getInstance().getProductName().toLowerCase(Locale.ROOT).replace(" ", "");
         String ideVersion = ApplicationInfo.getInstance().getFullVersion().replace(" ", "");
-        // getPluginByClass is public API; PluginManagerCore.getPlugin is internal and fails the Marketplace verifier.
-        var plugin = PluginManager.getPluginByClass(TudiTracker.class);
-        return ide + "/" + ideVersion + " tudi-jetbrains/" + (plugin == null ? "0" : plugin.getVersion());
+        return ide + "/" + ideVersion + " tudi-jetbrains/" + VERSION;
+    }
+
+    /**
+     * The version the build writes into tudi-version.txt (build.gradle.kts). The platform's own plugin lookups
+     * (PluginManagerCore.getPlugin, PluginManager.getPluginByClass) are internal API and fail the Marketplace verifier.
+     */
+    static final String VERSION = readVersion();
+
+    private static String readVersion() {
+        try (var in = TudiTracker.class.getResourceAsStream("/com/tudidaily/tracker/tudi-version.txt")) {
+            if (in == null) return "0";
+            String version = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).trim();
+            return version.isEmpty() ? "0" : version;
+        } catch (IOException e) {
+            return "0";
+        }
     }
 
     private static FileTime modified(Path file) {

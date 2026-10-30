@@ -56,3 +56,17 @@ intellijPlatform {
 tasks.test {
     useJUnitPlatform()
 }
+
+// The plugin reads its own version from this file (TudiTracker.VERSION), not through the platform's internal API.
+val writeVersion by tasks.registering {
+    val version = providers.gradleProperty("pluginVersion")
+    val out = layout.buildDirectory.dir("generated/version")
+    inputs.property("version", version)
+    outputs.dir(out)
+    doLast {
+        val file = out.get().file("com/tudidaily/tracker/tudi-version.txt").asFile
+        file.parentFile.mkdirs()
+        file.writeText(version.get())
+    }
+}
+sourceSets.main { resources.srcDir(writeVersion) }
