@@ -21,6 +21,15 @@ permissions:
   contents: write
 
 jobs:
+  # The release exists before the builds: Windows and macOS each creating it at the same moment made two releases with
+  # one tag (desktop-v0.1.0 and 0.1.1), the macOS files in the one the updater does not read.
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release view "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" --title "${GITHUB_REF_NAME#desktop-v}" --notes "Commit Kingdom Desktop ${GITHUB_REF_NAME#desktop-v}"
+
   jetbrains:
     runs-on: ubuntu-latest
     defaults:
@@ -45,7 +54,7 @@ jobs:
         run: if [ -n "$JETBRAINS_MARKETPLACE_TOKEN" ]; then ./gradlew publishPlugin; else echo "No JETBRAINS_MARKETPLACE_TOKEN, skipped"; fi
 
   build:
-    needs: jetbrains
+    needs: [release, jetbrains]
     strategy:
       fail-fast: false
       matrix:
