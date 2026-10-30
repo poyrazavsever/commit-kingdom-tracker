@@ -84,7 +84,14 @@ jobs:
       - run: npm run build:jetbrains -- "${{ runner.temp }}/jetbrains/tudi-tracker-jetbrains.zip"
       - run: npm run build:cli -- ${{ matrix.cli }}
       - run: npm test
-      - run: npx tsc -p . && npx electron-builder ${{ matrix.target }} --publish always
+      # An empty secret still arrives as an empty variable, and electron-builder reads an empty CSC_LINK as the current
+      # folder ("desktop not a file"): only the secrets that exist are passed on.
+      - shell: bash
+        run: |
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            if [ -z "${!name}" ]; then unset "$name"; fi
+          done
+          npx tsc -p . && npx electron-builder ${{ matrix.target }} --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
