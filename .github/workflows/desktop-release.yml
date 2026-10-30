@@ -42,7 +42,7 @@ jobs:
       - name: Publish to JetBrains Marketplace (when the token exists)
         env:
           JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
-        run: if [ -n "$JETBRAINS_MARKETPLACE_TOKEN" ]; then ./gradlew publishPlugin; else echo "No JETBRAINS_MARKETPLACE_TOKEN: skipped"; fi
+        run: if [ -n "$JETBRAINS_MARKETPLACE_TOKEN" ]; then ./gradlew publishPlugin; else echo "No JETBRAINS_MARKETPLACE_TOKEN, skipped"; fi
 
   build:
     needs: jetbrains
@@ -122,8 +122,8 @@ jobs:
       - name: Publish to Visual Studio Marketplace (when the token exists)
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: if [ -n "$VSCE_PAT" ]; then npx vsce publish --packagePath tudi-tracker.vsix; else echo "No VSCE_PAT: skipped"; fi
+        run: if [ -n "$VSCE_PAT" ]; then npx vsce publish --packagePath tudi-tracker.vsix; else echo "No VSCE_PAT, skipped"; fi
       - name: Publish to Open VSX (when the token exists)
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: if [ -n "$OVSX_PAT" ]; then npx --yes ovsx@0.10.6 publish tudi-tracker.vsix -p "$OVSX_PAT"; else echo "No OVSX_PAT: skipped"; fi
+        run: if [ -n "$OVSX_PAT" ]; then npx --yes ovsx@0.10.6 publish tudi-tracker.vsix -p "$OVSX_PAT"; else echo "No OVSX_PAT, skipped"; fi
