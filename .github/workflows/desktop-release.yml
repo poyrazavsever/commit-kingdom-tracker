@@ -110,6 +110,15 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           # No certificate yet: build unsigned instead of failing.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+      # The Microsoft Store package (MSIX): the Store signs it, so it is built unsigned and kept as a workflow artifact
+      # for the Partner Center upload, never attached to the release (an unsigned MSIX cannot be installed by hand).
+      - if: runner.os == 'Windows'
+        run: npx electron-builder --win appx --x64 --publish never
+      - if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: microsoft-store-package
+          path: desktop/dist/*.appx
 
   extensions:
     needs: build

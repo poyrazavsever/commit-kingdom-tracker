@@ -1,0 +1,59 @@
+# Builds only the Microsoft Store package (MSIX) of Commit Kingdom Desktop, on demand, without publishing a release:
+# for a Store submission between releases. The release workflow builds the same package with every desktop-v* tag.
+name: Commit Kingdom Desktop Store package
+
+on:
+  workflow_dispatch:
+
+jobs:
+  jetbrains:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jetbrains
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew buildPlugin
+      - run: cp build/distributions/*.zip tudi-tracker-jetbrains.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jetbrains-plugin
+          path: jetbrains/tudi-tracker-jetbrains.zip
+
+  store:
+    needs: jetbrains
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+          cache-dependency-path: cli/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci
+      - run: npm --prefix ../vscode ci
+      - run: npm run build:extension
+      - uses: actions/download-artifact@v4
+        with:
+          name: jetbrains-plugin
+          path: ${{ runner.temp }}/jetbrains
+      - run: npm run build:jetbrains -- "${{ runner.temp }}/jetbrains/tudi-tracker-jetbrains.zip"
+      - run: npm run build:cli -- win32-x64
+      - run: npm test
+      - run: npx tsc -p . && npx electron-builder --win appx --x64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: microsoft-store-package
+          path: desktop/dist/*.appx

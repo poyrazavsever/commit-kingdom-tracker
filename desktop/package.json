@@ -77,6 +77,19 @@
         }
       ]
     },
+    "appx": {
+      "identityName": "PoyrazAvsever.CommitKingdomDesktop",
+      "publisher": "CN=2DB8A4D7-AD0E-4D45-8C3E-FB48A2E7DA79",
+      "publisherDisplayName": "Poyraz Avsever",
+      "displayName": "Commit Kingdom Desktop",
+      "applicationId": "CommitKingdomDesktop",
+      "backgroundColor": "transparent",
+      "languages": [
+        "en-US",
+        "tr-TR"
+      ],
+      "artifactName": "CommitKingdomDesktop-Store.${ext}"
+    },
     "nsis": {
       "oneClick": true,
       "perMachine": false,
