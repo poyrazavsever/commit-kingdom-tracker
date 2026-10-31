@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import { clearCliKey, cliKey, cliPaths, machineId, markAiStart, writeCliKey } from '../main/cliConfig';
 import { readIniValue, setIniValues } from '../main/ini';
 import { challengeOf, pkcePair } from '../main/pkce';
-import { connectUrl, signIn, SignInCancelled } from '../main/signIn';
+import { connectUrl, defaultDeviceName, signIn, SignInCancelled } from '../main/signIn';
 
 const pages = { done: 'done', cancelled: 'cancelled', failed: 'failed' };
 
@@ -131,4 +131,11 @@ test('the computer gets one random machine id, kept across keys and sign-outs, n
   assert.equal(machineId(paths), undefined);
   writeCliKey(paths, 'key-3', null);
   assert.match(machineId(paths) ?? '', /^ck-/);
+});
+
+test('a new computer is named by its kind, never by the system host name', () => {
+  assert.equal(defaultDeviceName('win32', true), 'Windows bilgisayar');
+  assert.equal(defaultDeviceName('win32', false), 'Windows PC');
+  assert.equal(defaultDeviceName('darwin', true), 'Mac');
+  assert.equal(defaultDeviceName('linux', false), 'Linux PC');
 });

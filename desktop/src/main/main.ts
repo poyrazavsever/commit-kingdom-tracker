@@ -1,4 +1,3 @@
-import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell, Tray } from 'electron';
 import { DesktopApi, KeyRevoked, type Summary } from './api';
@@ -11,7 +10,7 @@ import { findJetBrainsIdes, installPlugin, pluginSource } from './jetbrains';
 import { forgetDevice, loadDevice, saveDevice } from './keyStore';
 import { syncDue, syncQueue } from './queue';
 import { restartToUpdate, startUpdates } from './updater';
-import { type Device, signIn, SignInCancelled } from './signIn';
+import { defaultDeviceName, type Device, signIn, SignInCancelled } from './signIn';
 
 /** What the window shows; the renderer only draws it (static/renderer.js). */
 type View = {
@@ -105,7 +104,7 @@ async function startSignIn(): Promise<void> {
     const signed = await signIn({
       apiUrl,
       appUrl,
-      deviceName: hostname(),
+      deviceName: defaultDeviceName(process.platform, tr),
       signal: signInAbort.signal,
       openBrowser: url => shell.openExternal(url),
       pages: tr

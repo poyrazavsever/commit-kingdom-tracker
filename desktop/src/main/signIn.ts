@@ -25,6 +25,16 @@ export type SignInOptions = {
   timeoutMs?: number;
 };
 
+/**
+ * The name a new computer gets until the member renames it in the app: its kind, never the system host name, which is
+ * often the owner's own name (privacy notice, 2026-10-31).
+ */
+export function defaultDeviceName(platform: NodeJS.Platform, tr: boolean): string {
+  if (platform === 'darwin') return 'Mac';
+  const system = platform === 'win32' ? 'Windows' : platform === 'linux' ? 'Linux' : 'Desktop';
+  return tr ? `${system} bilgisayar` : `${system} PC`;
+}
+
 /** The web page that asks the signed-in member to approve this computer (ADR-027). */
 export function connectUrl(appUrl: string, request: { challenge: string; redirect: string; state: string; device: string }): string {
   const url = new URL('/desktop/connect', appUrl);
