@@ -7,10 +7,11 @@ const CHECK_EVERY_MS = 6 * 60 * 60_000;
 /**
  * Updates come from GitHub Releases (ADR-027) and bring the matching tudi-cli with them. A new version downloads in
  * the background and installs when Tudi Desktop quits; `onReady` lets the tray offer to restart now. Development
- * runs (not packaged) never update.
+ * runs (not packaged) never update, and neither does the Microsoft Store copy: the Store updates its own package, and
+ * an MSIX install cannot replace itself.
  */
 export function startUpdates(onReady: (version: string) => void): void {
-  if (!app.isPackaged) return;
+  if (!app.isPackaged || process.windowsStore) return;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.on('update-downloaded', info => onReady(info.version));
