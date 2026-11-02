@@ -1,26 +1,56 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { execFile } from 'node:child_process';
+import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { promisify } from 'node:util';
 import { app, nativeImage } from 'electron';
+
+const run = promisify(execFile);
 
 /**
  * Each editor's own logo, taken from the installed editor: no editor logo ships with Tudi Desktop. On Windows the
  * VS Code family keeps a 150 px logo for its Start tile (resources\app\resources\win32, inside a version folder
- * for VS Code itself); without one, the .exe's icon. On macOS, the .app's icon.
+ * for VS Code itself); without one, the .exe's icon. On macOS, the .icns the .app names in its Info.plist.
  */
 const iconCache = new Map<string, string | null>();
 export async function editorIcon(path: string): Promise<string | null> {
   if (!iconCache.has(path)) {
     let icon: string | null = null;
     try {
-      const tile = process.platform === 'win32' ? startTile(dirname(path)) : undefined;
-      const image = tile ? nativeImage.createFromPath(tile) : await app.getFileIcon(path, { size: 'large' });
-      icon = image.isEmpty() ? null : trimTransparent(image).resize({ width: 64, quality: 'best' }).toDataURL();
+      const image = process.platform === 'darwin' ? await bundleIcon(path) : await windowsIcon(path);
+      icon = !image || image.isEmpty() ? null : trimTransparent(image).resize({ width: 64, quality: 'best' }).toDataURL();
     } catch {
       icon = null;
     }
     iconCache.set(path, icon);
   }
   return iconCache.get(path) ?? null;
+}
+
+async function windowsIcon(exe: string): Promise<Electron.NativeImage> {
+  const tile = process.platform === 'win32' ? startTile(dirname(exe)) : undefined;
+  return tile ? nativeImage.createFromPath(tile) : app.getFileIcon(exe, { size: 'large' });
+}
+
+/**
+ * Never app.getFileIcon on macOS: Chromium reads the icon on a worker thread (IconLoader::ReadIcon) and that crashes
+ * the whole app on macOS a few seconds after it opens. The .icns is turned into a PNG with the system's sips instead.
+ */
+async function bundleIcon(bundle: string): Promise<Electron.NativeImage | null> {
+  const contents = join(bundle, 'Contents');
+  const { stdout } = await run('/usr/bin/plutil', ['-extract', 'CFBundleIconFile', 'raw', '-o', '-', join(contents, 'Info.plist')]);
+  const name = stdout.trim();
+  if (!name) return null;
+  const icns = join(contents, 'Resources', name.endsWith('.icns') ? name : `${name}.icns`);
+  if (!existsSync(icns)) return null;
+  const dir = mkdtempSync(join(tmpdir(), 'ck-icon-'));
+  try {
+    const png = join(dir, 'icon.png');
+    await run('/usr/bin/sips', ['-s', 'format', 'png', '-Z', '256', icns, '--out', png]);
+    return nativeImage.createFromPath(png);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 /** Crops the transparent margin around a logo (VS Code's tile logo fills only the middle of its 150 px). */
