@@ -347,30 +347,9 @@ main.signedIn { padding: 0; }
 .day.today .pill .bar { background-color: var(--aqua-deep); }
 .day.empty .pill { background: transparent; border-style: dashed; }
 
-.share-row { display: flex; align-items: center; gap: 10px; min-height: 40px; border-top: 2px solid var(--disabled); }
-.card-head + .share-row { border-top: 0; }
 .row-icon { width: 26px; height: 26px; flex: none; object-fit: contain; border-radius: 6px; }
 .row-icon.letter { display: grid; place-items: center; background: var(--sky-soft); color: var(--sky-deep); font: 800 14px/1 'Nunito', sans-serif; }
-.share-name { flex: 1; font: 700 15px/20px 'Nunito', sans-serif; }
-.share-value { font: 800 15px/20px 'Nunito', sans-serif; }
 
-.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.toolbar .button { margin-bottom: 0; }
-.stepper { display: flex; align-items: center; height: 44px; border: 2px solid var(--border); border-radius: 14px; background: var(--surface); overflow: hidden; }
-.stepper span { min-width: 170px; text-align: center; font: 800 15px/20px 'Nunito', sans-serif; }
-.step { width: 44px; height: 100%; border: 0; background: transparent; color: var(--aqua-deep); font: 800 26px/1 'Baloo 2', sans-serif; cursor: pointer; }
-.step:first-child { border-right: 2px solid var(--disabled); }
-.step:last-child { border-left: 2px solid var(--disabled); }
-.step:disabled { color: var(--border); cursor: default; }
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.stat { display: flex; align-items: center; gap: 8px; padding: 12px; background: var(--surface); border: 2px solid var(--border); border-radius: 16px; box-shadow: 0 var(--rail) 0 var(--border); }
-.stat img { width: 32px; height: 32px; object-fit: contain; }
-.stat small { display: block; font: 600 12px/16px 'Nunito', sans-serif; color: var(--ink-muted); }
-.stat strong { font: 800 16px/20px 'Nunito', sans-serif; }
-.ghost-rows { display: flex; flex-direction: column; gap: 10px; }
-.ghost-rows i { height: 26px; border-radius: 10px; background: var(--disabled); }
-.ghost-rows i:nth-child(2) { width: 78%; }
-.ghost-rows i:nth-child(3) { width: 56%; }
 
 .nudge { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--coral-soft); border: 2px solid var(--coral-deep); border-radius: 18px; }
 .nudge img { width: 52px; height: 40px; object-fit: contain; }
@@ -396,8 +375,6 @@ main.signedIn { padding: 0; }
 .center { text-align: center; }
 .nav-item { padding-right: 30px; }
 .card.stickered .card-head, .card.locked .card-head { padding-left: 34px; }
-.empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 0; }
-.empty img { width: 220px; }
 /* Founder revision (2026-11-04): no page scrolls; the Plus card wears the Kingdom Plus logo; perks in three columns. */
 .page-body { overflow: hidden; }
 .plus-card { margin-top: 34px; padding-top: 40px; }
