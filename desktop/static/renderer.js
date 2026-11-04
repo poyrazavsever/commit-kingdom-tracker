@@ -26,6 +26,8 @@
       installed: 'Installed',
       restartIde: 'Restart the IDE to start counting',
       noEditors: 'No VS Code, Cursor, Windsurf, VSCodium or Antigravity found on this computer.',
+      aiTools: 'AI agents, counted as AI',
+      aiToolTitle: 'Counted without an editor; AI minutes give half the reward.',
       errors: {
         install: 'The extension could not be installed. Try again.',
         cli: 'The Commit Kingdom tracker could not be set up on this computer. Reinstall Commit Kingdom Desktop.',
@@ -60,6 +62,8 @@
       installed: 'Kurulu',
       restartIde: 'Saymaya başlaması için IDE’yi yeniden başlat',
       noEditors: 'Bu bilgisayarda VS Code, Cursor, Windsurf, VSCodium ya da Antigravity bulunamadı.',
+      aiTools: 'AI ajanları, AI olarak sayılır',
+      aiToolTitle: 'Editör olmadan da sayılır; AI dakikaları yarım ödül verir.',
       errors: {
         install: 'Eklenti kurulamadı. Yeniden dene.',
         cli: 'Commit Kingdom sayacı bu bilgisayara kurulamadı. Commit Kingdom Desktop’ı yeniden kur.',
@@ -187,6 +191,17 @@
 
     // While setup is unfinished (an editor without the extension, or none found) the editors take the week's place;
     // afterwards they become a line of badges under the week.
+    // AI agents need no setup: tudi-cli reads their logs. They are listed so the member knows they count, and how.
+    const aiTools = state.aiTools ?? [];
+    const aiRow =
+      aiTools.length > 0
+        ? el(
+            'div',
+            { className: 'ai-tools', title: t.aiToolTitle },
+            el('span', { className: 'ai-label' }, t.aiTools),
+            el('div', { className: 'badges' }, ...aiTools.map(tool => el('span', { className: 'badge info with-icon' }, el('img', { src: 'art/stat-ai.webp', alt: '' }), tool.name))),
+          )
+        : null;
     const editors = state.editors ?? [];
     const missing = editors.filter(editor => !editor.hasExtension && !editor.installing);
     const setup = state.editors !== null && (editors.length === 0 || editors.some(editor => !editor.hasExtension));
@@ -210,6 +225,8 @@
                       : button(t.install, () => window.tudi.installExtension(editor.id), missing.length > 1 ? 'secondary small' : 'small'),
                 ),
               )),
+          aiRow ? el('div', { className: 'spacer' }) : null,
+          aiRow,
         )
       : el(
           'div',
@@ -229,6 +246,7 @@
             ),
           ),
           editors.length > 0 ? el('div', { className: 'badges', ariaLabel: t.editors }, ...editors.map(editor => el('span', { className: 'badge success with-icon' }, editor.icon ? el('img', { src: editor.icon, alt: '' }) : null, editor.name))) : null,
+          aiRow,
         );
 
     const focused = typing !== null;

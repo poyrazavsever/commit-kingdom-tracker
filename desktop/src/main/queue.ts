@@ -19,6 +19,15 @@ export function syncQueue(cli: string, plugin: string, run: RunCli = runCli): Pr
   return run(cli, ['--sync-offline-activity', '1000', '--plugin', plugin], 60_000);
 }
 
+/**
+ * Starts `tudi-cli --sync-ai-activity`: the AI coding tools' local logs (Claude Code, Codex, Gemini CLI, Antigravity…)
+ * become heartbeats without an editor, so coding with an agent in a terminal counts too. They count as AI-assisted
+ * (ADR-024); the logs never leave the computer and are read no further back than the sign-in (cli/pkg/ai/tudi_lookback.go).
+ */
+export function syncAi(cli: string, plugin: string, run: RunCli = runCli): Promise<void> {
+  return run(cli, ['--sync-ai-activity', '--plugin', plugin], 120_000);
+}
+
 /** Whether it is time to send the queue again. */
 export function syncDue(lastSyncAt: number, now: number): boolean {
   return now - lastSyncAt >= SYNC_EVERY_MS;

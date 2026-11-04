@@ -270,3 +270,7 @@ h2 { margin: 0; font: 800 17px/22px 'Nunito', sans-serif; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* AI agents: read-only, under the editors; nothing to install */
+.ai-tools { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 2px solid var(--disabled); }
+.ai-label { font: 700 13px/18px 'Nunito', sans-serif; color: var(--ink-muted); }

@@ -1,5 +1,6 @@
 import { join } from 'node:path';
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell, Tray } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, powerMonitor, shell, Tray } from 'electron';
+import { type AiTool, findAiTools } from './aiTools';
 import { DesktopApi, KeyRevoked, type Summary } from './api';
 import { clearCliKey, cliKey, cliPaths, machineId, markAiStart, writeCliKey } from './cliConfig';
 import { bundledCli, ensureCli } from './cliInstall';
@@ -8,7 +9,7 @@ import { editorIcon } from './editorIcons';
 import { editorCandidates, extensionSource, findEditors, installExtension } from './editors';
 import { findJetBrainsIdes, installPlugin, pluginSource } from './jetbrains';
 import { forgetDevice, loadDevice, saveDevice } from './keyStore';
-import { syncDue, syncQueue } from './queue';
+import { syncAi, syncDue, syncQueue } from './queue';
 import { restartToUpdate, startUpdates } from './updater';
 import { defaultDeviceName, type Device, signIn, SignInCancelled } from './signIn';
 
@@ -23,6 +24,8 @@ type View = {
    * a JetBrains IDE loads the plugin the next time it starts.
    */
   editors: { id: string; name: string; icon: string | null; hasExtension: boolean; installing: boolean; restart: boolean }[] | null;
+  /** AI coding tools with logs on this computer; their work counts without an editor (queue.ts → syncAi). */
+  aiTools: AiTool[];
   error: 'signIn' | 'offline' | 'keyStore' | 'rename' | 'install' | 'cli' | null;
   /** Increments even when the same error happens twice, so every event gets its own toast. */
   errorId: number;
@@ -39,7 +42,7 @@ let refreshTimer: NodeJS.Timeout | null = null;
 let quitting = false;
 /** A downloaded update waiting for a restart. */
 let updateReady: string | null = null;
-const view: View = { phase: 'signedOut', locale: 'en', deviceName: '', summary: null, editors: null, error: null, errorId: 0 };
+const view: View = { phase: 'signedOut', locale: 'en', deviceName: '', summary: null, editors: null, aiTools: [], error: null, errorId: 0 };
 /** Editors are looked for again when the window comes back, at most this often (each look starts every editor's CLI). */
 const EDITORS_EVERY_MS = 2 * 60_000;
 let editorsAt = 0;
@@ -77,6 +80,11 @@ function start(): void {
 
   registerIpc();
   createTray();
+  // A computer that slept missed its two-minute syncs: what the agents and editors did before sleep goes out now.
+  powerMonitor.on('resume', () => {
+    syncedAt = 0;
+    void refresh();
+  });
   showWindow();
   startUpdates(version => {
     updateReady = version;
@@ -148,6 +156,7 @@ async function refreshEditors(force = false): Promise<void> {
   const installing = new Set((view.editors ?? []).filter(editor => editor.installing).map(editor => editor.id));
   const icons = await Promise.all(found.map(editor => editorIcon(editor.app)));
   set({
+    aiTools: findAiTools(),
     editors: found.map(({ id, name, hasExtension }, index) => ({
       id,
       name,
@@ -198,7 +207,10 @@ async function refresh(): Promise<void> {
   if (!device) return;
   if (syncDue(syncedAt, Date.now())) {
     syncedAt = Date.now();
-    await syncQueue(paths.cli, `tudi-desktop/${app.getVersion()}`);
+    const plugin = `tudi-desktop/${app.getVersion()}`;
+    // The agents' work first: anything it puts in the offline queue then leaves with the queue.
+    await syncAi(paths.cli, plugin);
+    await syncQueue(paths.cli, plugin);
   }
   try {
     const summary = await new DesktopApi(apiUrl, device.apiKey).summary();
