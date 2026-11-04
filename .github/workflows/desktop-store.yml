@@ -19,11 +19,11 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew buildPlugin
-      - run: cp build/distributions/*.zip tudi-tracker-jetbrains.zip
+      - run: cp build/distributions/*.zip commit-kingdom-tracker-jetbrains.zip
       - uses: actions/upload-artifact@v4
         with:
           name: jetbrains-plugin
-          path: jetbrains/tudi-tracker-jetbrains.zip
+          path: jetbrains/commit-kingdom-tracker-jetbrains.zip
 
   store:
     needs: jetbrains
@@ -49,7 +49,7 @@ jobs:
         with:
           name: jetbrains-plugin
           path: ${{ runner.temp }}/jetbrains
-      - run: npm run build:jetbrains -- "${{ runner.temp }}/jetbrains/tudi-tracker-jetbrains.zip"
+      - run: npm run build:jetbrains -- "${{ runner.temp }}/jetbrains/commit-kingdom-tracker-jetbrains.zip"
       - run: npm run build:cli -- win32-x64
       - run: npm test
       - run: npx tsc -p . && npx electron-builder --win appx --x64 --publish never

@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { findJetBrainsIdes, installPlugin, parseFolder, PLUGIN_FOLDER, pluginSource } from '../main/jetbrains';
+import { findJetBrainsIdes, installPlugin, LEGACY_PLUGIN_FOLDER, parseFolder, PLUGIN_FOLDER, pluginSource } from '../main/jetbrains';
 
 test('config folders name the product and version', () => {
   assert.deepEqual(parseFolder('PyCharm2025.1'), { product: 'PyCharm', version: [2025, 1] });
@@ -43,6 +43,7 @@ test('installing replaces the plugin folder with the zip’s contents', async ()
   const root = mkdtempSync(join(tmpdir(), 'tudi-jb-'));
   const pluginsDir = join(root, 'plugins');
   mkdirSync(join(pluginsDir, PLUGIN_FOLDER, 'old'), { recursive: true });
+  mkdirSync(join(pluginsDir, LEGACY_PLUGIN_FOLDER, 'lib'), { recursive: true });
   const calls: [string, string][] = [];
   await installPlugin({ id: 'jetbrains-pycharm', name: 'PyCharm', pluginsDir, app: '', hasPlugin: true }, join(root, 'plugin.zip'), async (zip, into) => {
     calls.push([zip, into]);
@@ -52,6 +53,8 @@ test('installing replaces the plugin folder with the zip’s contents', async ()
   const { existsSync } = await import('node:fs');
   assert.equal(existsSync(join(pluginsDir, PLUGIN_FOLDER, 'old')), false);
   assert.equal(existsSync(join(pluginsDir, PLUGIN_FOLDER, 'lib')), true);
+  // The plugin from before the Marketplace (tudidaily id) is gone, so the IDE does not count twice.
+  assert.equal(existsSync(join(pluginsDir, LEGACY_PLUGIN_FOLDER)), false);
 });
 
 test('the plugin comes from the bundled zip, then a local build, then Marketplace', () => {

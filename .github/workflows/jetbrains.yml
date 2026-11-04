@@ -25,5 +25,5 @@ jobs:
       - run: ./gradlew test buildPlugin verifyPlugin
       - uses: actions/upload-artifact@v4
         with:
-          name: tudi-tracker-jetbrains
+          name: commit-kingdom-tracker-jetbrains
           path: jetbrains/build/distributions/*.zip

@@ -1,1 +1,1 @@
-rootProject.name = "tudi-tracker-jetbrains"
+rootProject.name = "commit-kingdom-tracker-jetbrains"

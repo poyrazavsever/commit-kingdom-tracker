@@ -6,7 +6,7 @@ plugins {
     id("org.jetbrains.intellij.platform") version "2.19.0"
 }
 
-group = "com.tudidaily"
+group = "com.commitkingdom"
 version = providers.gradleProperty("pluginVersion").get()
 
 java {

@@ -15,6 +15,6 @@ if (!zip) {
   zip = join(out, built[built.length - 1]);
 }
 mkdirSync(join(root, 'resources', 'extensions'), { recursive: true });
-const target = join(root, 'resources', 'extensions', 'tudi-tracker-jetbrains.zip');
+const target = join(root, 'resources', 'extensions', 'commit-kingdom-tracker-jetbrains.zip');
 copyFileSync(zip, target);
 console.log(`JetBrains plugin → ${target}`);

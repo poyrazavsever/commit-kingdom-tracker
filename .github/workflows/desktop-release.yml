@@ -45,11 +45,11 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew test buildPlugin
-      - run: cp build/distributions/*.zip tudi-tracker-jetbrains.zip
+      - run: cp build/distributions/*.zip commit-kingdom-tracker-jetbrains.zip
       - uses: actions/upload-artifact@v4
         with:
           name: jetbrains-plugin
-          path: jetbrains/tudi-tracker-jetbrains.zip
+          path: jetbrains/commit-kingdom-tracker-jetbrains.zip
       - name: Publish to JetBrains Marketplace (when the token exists)
         env:
           JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
@@ -92,7 +92,7 @@ jobs:
         with:
           name: jetbrains-plugin
           path: ${{ runner.temp }}/jetbrains
-      - run: npm run build:jetbrains -- "${{ runner.temp }}/jetbrains/tudi-tracker-jetbrains.zip"
+      - run: npm run build:jetbrains -- "${{ runner.temp }}/jetbrains/commit-kingdom-tracker-jetbrains.zip"
       - run: npm run build:cli -- ${{ matrix.cli }}
       # The Visual Studio extension (Windows only) is carried inside Desktop, like the VSIX and the JetBrains plugin.
       - if: runner.os == 'Windows'
@@ -190,7 +190,7 @@ jobs:
       - name: Attach the extension and the plugin to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "$GITHUB_REF_NAME" tudi-tracker.vsix "${{ runner.temp }}/jetbrains/tudi-tracker-jetbrains.zip" --clobber
+        run: gh release upload "$GITHUB_REF_NAME" tudi-tracker.vsix "${{ runner.temp }}/jetbrains/commit-kingdom-tracker-jetbrains.zip" --clobber
       # A release that did not change the extension carries a version the Marketplace already has and refuses; the
       # release goes on, and the log says why.
       - name: Publish to Visual Studio Marketplace (Trusted Publishing)

@@ -4,9 +4,11 @@ import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 /** The plugin's id in plugin.xml and on JetBrains Marketplace. */
-export const PLUGIN_ID = 'com.tudidaily.tracker';
+export const PLUGIN_ID = 'com.commitkingdom.tracker';
 /** The folder the plugin zip unpacks to (jetbrains/build.gradle.kts → rootProject.name). */
-export const PLUGIN_FOLDER = 'tudi-tracker-jetbrains';
+export const PLUGIN_FOLDER = 'commit-kingdom-tracker-jetbrains';
+/** The folder the plugin had before JetBrains Marketplace (id com.tudidaily.tracker); removed when the new one goes in. */
+export const LEGACY_PLUGIN_FOLDER = 'tudi-tracker-jetbrains';
 /** The plugin supports 2024.2 and later (jetbrains/gradle.properties → sinceBuild 242). */
 const OLDEST = [2024, 2] as const;
 
@@ -166,6 +168,8 @@ export async function installPlugin(ide: JetBrainsIde, source = MARKETPLACE_URL,
   try {
     mkdirSync(ide.pluginsDir, { recursive: true });
     rmSync(join(ide.pluginsDir, PLUGIN_FOLDER), { recursive: true, force: true });
+    // Two copies would count twice: the earlier id goes with the old folder.
+    rmSync(join(ide.pluginsDir, LEGACY_PLUGIN_FOLDER), { recursive: true, force: true });
     await extract(zip, ide.pluginsDir);
   } finally {
     if (zip !== source) rmSync(zip, { force: true });

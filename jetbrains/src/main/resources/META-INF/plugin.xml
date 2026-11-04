@@ -1,5 +1,5 @@
 <idea-plugin>
-    <id>com.tudidaily.tracker</id>
+    <id>com.commitkingdom.tracker</id>
     <name>Commit Kingdom Tracker</name>
     <vendor url="https://commitkingdom.com">Commit Kingdom</vendor>
     <description><![CDATA[
