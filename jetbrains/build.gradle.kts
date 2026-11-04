@@ -43,7 +43,7 @@ intellijPlatform {
         }
     }
     publishing {
-        // JetBrains Marketplace token of the tudidaily vendor; publishing waits for that account.
+        // JetBrains Marketplace token of the Commit Kingdom vendor; publishing waits for that account.
         token = providers.environmentVariable("JETBRAINS_MARKETPLACE_TOKEN")
     }
     pluginVerification {

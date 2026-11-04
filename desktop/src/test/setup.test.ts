@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { bundledCli, ensureCli } from '../main/cliInstall';
-import { editorCandidates, EXTENSION_ID, extensionSource, findEditors, installExtension } from '../main/editors';
+import { editorCandidates, EXTENSION_ID, extensionSource, findEditors, installExtension, LEGACY_EXTENSION_ID } from '../main/editors';
 
 test('tudi-cli is installed, kept, and replaced when Tudi Desktop carries a new one', () => {
   const dir = mkdtempSync(join(tmpdir(), 'tudi-cli-'));
@@ -50,6 +50,23 @@ test('editors are found by install location, and the extension is looked for in 
   await installExtension(candidates[1], run, 'C:\dev\tudi-tracker.vsix').catch(() => undefined);
   assert.deepEqual(calls.at(-1), [cursor, '--install-extension', 'C:\dev\tudi-tracker.vsix', '--force']);
   assert.deepEqual(editorCandidates('linux', {}, local), []);
+});
+
+test('an editor with only the old tudidaily extension asks for the new one, which replaces it', async () => {
+  const editor = { id: 'vscode' as const, name: 'VS Code', cli: 'code', app: 'Code' };
+  const calls: string[][] = [];
+  const run = async (_cli: string, args: string[]) => {
+    calls.push(args);
+    if (args[0] === '--list-extensions') return `${LEGACY_EXTENSION_ID}\n`;
+    if (args[0] === '--uninstall-extension') throw new Error('not installed');
+    return '';
+  };
+
+  const [found] = await findEditors(run, [editor]);
+  await installExtension(editor, run, 'tudi-tracker.vsix');
+
+  assert.equal(found.hasExtension, false);
+  assert.deepEqual(calls.slice(1), [['--install-extension', 'tudi-tracker.vsix', '--force'], ['--uninstall-extension', LEGACY_EXTENSION_ID]]);
 });
 
 test('on macOS Antigravity IDE is found in the Applications folder, by its own launcher', () => {

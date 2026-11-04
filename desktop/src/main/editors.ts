@@ -3,8 +3,13 @@ import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-/** The Tudi Tracker extension on the VS Code Marketplace and Open VSX. */
-export const EXTENSION_ID = 'tudidaily.tudi-tracker';
+/** The Commit Kingdom Tracker extension on the VS Code Marketplace and Open VSX (publisher commitkingdom, 2026-11-04). */
+export const EXTENSION_ID = 'commitkingdom.commit-kingdom-tracker';
+/**
+ * The id the extension had before the stores (Tudi Daily's publisher). Desktop 0.2.0 and earlier installed it; it is
+ * removed when the new one goes in, so no editor counts twice.
+ */
+export const LEGACY_EXTENSION_ID = 'tudidaily.tudi-tracker';
 
 export type EditorId = 'vscode' | 'vscode-insiders' | 'cursor' | 'windsurf' | 'vscodium' | 'antigravity';
 /** `cli` starts the editor's command line; `app` is the editor itself, whose icon the window shows. */
@@ -83,6 +88,8 @@ export async function findEditors(run: RunEditorCli = runEditorCli, candidates =
  */
 export async function installExtension(editor: EditorCandidate, run: RunEditorCli = runEditorCli, source = process.env.TUDI_VSIX || EXTENSION_ID): Promise<void> {
   await run(editor.cli, ['--install-extension', source, '--force']);
+  // Usually not there: the editor's refusal is the expected answer.
+  await run(editor.cli, ['--uninstall-extension', LEGACY_EXTENSION_ID]).catch(() => undefined);
 }
 
 /** Editor launchers on Windows are .cmd files, which Node only starts through cmd.exe. */

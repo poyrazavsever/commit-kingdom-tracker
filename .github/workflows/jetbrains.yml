@@ -1,5 +1,5 @@
 # Tests the JetBrains plugin and keeps the installable zip as an artifact. Publishing to JetBrains Marketplace waits for
-# the tudidaily vendor account (JETBRAINS_MARKETPLACE_TOKEN; `./gradlew publishPlugin`).
+# the Commit Kingdom vendor account (JETBRAINS_MARKETPLACE_TOKEN; `./gradlew publishPlugin`).
 name: JetBrains plugin
 
 on:

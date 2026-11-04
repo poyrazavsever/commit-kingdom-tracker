@@ -10,7 +10,7 @@
 #
 # Editor extensions: the JetBrains plugin is built once and carried inside Desktop (as the VSIX is), and both are
 # attached to the release for installing by hand. Each marketplace is published to only when its token exists:
-# VSCE_PAT (Visual Studio Marketplace, publisher tudidaily), OVSX_PAT (Open VSX), JETBRAINS_MARKETPLACE_TOKEN.
+# VSCE_PAT (Visual Studio Marketplace, publisher commitkingdom), OVSX_PAT (Open VSX), JETBRAINS_MARKETPLACE_TOKEN.
 name: Commit Kingdom Desktop release
 
 on:
@@ -96,7 +96,7 @@ jobs:
       # The Visual Studio extension (Windows only) is carried inside Desktop, like the VSIX and the JetBrains plugin.
       - if: runner.os == 'Windows'
         run: npm run build:visualstudio
-      # The same Marketplace publisher (tudidaily) and token as the VS Code extension; skipped until the token exists.
+      # The same Marketplace publisher (commitkingdom) and token as the VS Code extension; skipped until the token exists.
       - if: runner.os == 'Windows'
         shell: pwsh
         env:
@@ -192,4 +192,4 @@ jobs:
       - name: Publish to Open VSX (when the token exists)
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: if [ -n "$OVSX_PAT" ]; then npx --yes ovsx@0.10.6 create-namespace tudidaily -p "$OVSX_PAT" || true; npx --yes ovsx@0.10.6 publish tudi-tracker.vsix -p "$OVSX_PAT"; else echo "No OVSX_PAT, skipped"; fi
+        run: if [ -n "$OVSX_PAT" ]; then npx --yes ovsx@0.10.6 create-namespace commitkingdom -p "$OVSX_PAT" || true; npx --yes ovsx@0.10.6 publish tudi-tracker.vsix -p "$OVSX_PAT"; else echo "No OVSX_PAT, skipped"; fi
