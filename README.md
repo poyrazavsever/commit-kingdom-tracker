@@ -15,6 +15,7 @@ This repository is open so you can check exactly what is sent.
 | `desktop/` | Commit Kingdom Desktop (Electron, MIT): signs this computer in with your Commit Kingdom account and shows today's coding |
 | `cli/` | `tudi-cli`, a fork of [wakatime-cli](https://github.com/wakatime/wakatime-cli) (BSD-3-Clause) pointed at Commit Kingdom, with an always-on privacy step |
 | `vscode/` | The extension for the VS Code family (VS Code, Cursor, Windsurf, VSCodium, Antigravity) |
+| `visualstudio/` | The extension for Visual Studio 2022 and later on Windows (C#; its event handling adapts [wakatime/visualstudio-wakatime](https://github.com/wakatime/visualstudio-wakatime), BSD-3-Clause) |
 | `jetbrains/` | The plugin for JetBrains IDEs 2024.2 and later (IntelliJ IDEA, PyCharm, WebStorm, Rider, GoLand, Android Studio…) |
 
 Editor extensions call `tudi-cli` the same way WakaTime plugins call `wakatime-cli`.

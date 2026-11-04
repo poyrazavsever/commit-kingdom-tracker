@@ -93,6 +93,9 @@ jobs:
           path: ${{ runner.temp }}/jetbrains
       - run: npm run build:jetbrains -- "${{ runner.temp }}/jetbrains/tudi-tracker-jetbrains.zip"
       - run: npm run build:cli -- ${{ matrix.cli }}
+      # The Visual Studio extension (Windows only) is carried inside Desktop, like the VSIX and the JetBrains plugin.
+      - if: runner.os == 'Windows'
+        run: npm run build:visualstudio
       - run: npm test
       # The Developer ID certificate goes into a keychain made here: electron-builder's own temporary keychain could not
       # be unlocked on the macOS 15 runner ("passphrase not correct", desktop-v0.1.2). CSC_NAME then picks the identity.

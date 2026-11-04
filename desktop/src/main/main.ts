@@ -8,6 +8,7 @@ import { apiUrl, appUrl, DEFAULT_API_URL, heartbeatApiUrl } from './config';
 import { editorIcon } from './editorIcons';
 import { editorCandidates, extensionSource, findEditors, installExtension } from './editors';
 import { findJetBrainsIdes, installPlugin, pluginSource } from './jetbrains';
+import { findVisualStudios, installVsix, vsixSource } from './visualStudio';
 import { forgetDevice, loadDevice, saveDevice } from './keyStore';
 import { syncAi, syncDue, syncQueue } from './queue';
 import { restartToUpdate, startUpdates } from './updater';
@@ -158,6 +159,8 @@ async function refreshEditors(force = false): Promise<void> {
   const found = [
     ...(await findEditors()).map(({ id, name, app, hasExtension }) => ({ id: id as string, name, app, hasExtension })),
     ...findJetBrainsIdes().map(({ id, name, app, hasPlugin }) => ({ id: id as string, name, app, hasExtension: hasPlugin })),
+    // Visual Studio is listed only when Desktop carries its extension (it is not on the Marketplace yet).
+    ...(visualStudioVsix() ? (await findVisualStudios()).map(({ id, name, app, hasExtension }) => ({ id: id as string, name, app, hasExtension })) : []),
   ];
   const installing = new Set((view.editors ?? []).filter(editor => editor.installing).map(editor => editor.id));
   const icons = await Promise.all(found.map(editor => editorIcon(editor.app)));
@@ -187,7 +190,8 @@ async function installAll(): Promise<void> {
 async function installInto(id: unknown, refreshAfter = true): Promise<void> {
   const editor = editorCandidates().find(candidate => candidate.id === id);
   const ide = findJetBrainsIdes().find(candidate => candidate.id === id);
-  if ((!editor && !ide) || !view.editors) return;
+  const vs = typeof id === 'string' && id.startsWith('visualstudio-') ? (await findVisualStudios()).find(candidate => candidate.id === id) : undefined;
+  if ((!editor && !ide && !vs) || !view.editors) return;
   const mark = (installing: boolean) => set({ editors: (view.editors ?? []).map(item => (item.id === id ? { ...item, installing } : item)) });
   mark(true);
   try {
@@ -197,15 +201,24 @@ async function installInto(id: unknown, refreshAfter = true): Promise<void> {
     } else if (ide) {
       await installPlugin(ide, pluginSource(process.resourcesPath, join(__dirname, '..', '..', '..', 'jetbrains', 'build', 'distributions')));
       restartIds.add(ide.id);
+    } else if (vs) {
+      const vsix = visualStudioVsix();
+      if (!vsix) throw new Error('No Visual Studio extension in this build.');
+      await installVsix(vs, vsix);
+      restartIds.add(vs.id);
     }
     if (view.error === 'install') set({ error: null });
   } catch (error) {
-    const name = editor?.name ?? ide?.name ?? String(id);
+    const name = editor?.name ?? ide?.name ?? vs?.name ?? String(id);
     console.error(`Could not install Tudi Tracker in ${name}:`, error);
     fail('install');
   }
   mark(false);
   if (refreshAfter) await refreshEditors(true);
+}
+
+function visualStudioVsix(): string | null {
+  return vsixSource(process.resourcesPath, join(__dirname, '..', '..', '..', 'visualstudio', 'bin', 'Release', 'CommitKingdom.VisualStudio.vsix'));
 }
 
 /** The only page the window opens besides the app: the site's Kingdom Plus page in the member's language. */
