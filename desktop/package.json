@@ -2,7 +2,7 @@
   "name": "tudi-desktop",
   "productName": "Commit Kingdom Desktop",
   "description": "Signs this computer in to Commit Kingdom, sets up tudi-cli and shows today's coding.",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "private": true,
   "license": "MIT",
   "main": "out/main/main.js",
