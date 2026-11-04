@@ -37,6 +37,7 @@ export function editorCandidates(platform: NodeJS.Platform = process.platform, e
       { id: 'cursor', name: 'Cursor', cli: app('Cursor.app', 'cursor') },
       { id: 'windsurf', name: 'Windsurf', cli: app('Windsurf.app', 'windsurf') },
       { id: 'vscodium', name: 'VSCodium', cli: app('VSCodium.app', 'codium') },
+      { id: 'antigravity', name: 'Antigravity', cli: app('Antigravity IDE.app', 'antigravity-ide') },
     ].flatMap(editor => first(editor, cli => cli.slice(0, cli.indexOf('.app') + 4)));
   }
   return [];

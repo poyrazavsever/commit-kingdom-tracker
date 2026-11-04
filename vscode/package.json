@@ -2,6 +2,12 @@
   "name": "tudi-tracker",
   "displayName": "Commit Kingdom Tracker",
   "description": "Counts your coding for Commit Kingdom, the strategy game where your commits build your kingdom. Sign in with Commit Kingdom Desktop; only time, language and line counts are sent.",
+  "icon": "images/icon.png",
+  "homepage": "https://commitkingdom.com/tracker",
+  "galleryBanner": {
+    "color": "#FFF8EE",
+    "theme": "light"
+  },
   "version": "0.1.0",
   "publisher": "tudidaily",
   "license": "MIT",

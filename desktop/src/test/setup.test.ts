@@ -52,6 +52,15 @@ test('editors are found by install location, and the extension is looked for in 
   assert.deepEqual(editorCandidates('linux', {}, local), []);
 });
 
+test('on macOS Antigravity IDE is found in the Applications folder, by its own launcher', () => {
+  const home = mkdtempSync(join(tmpdir(), 'ck-mac-'));
+  const cli = join(home, 'Applications', 'Antigravity IDE.app', 'Contents', 'Resources', 'app', 'bin', 'antigravity-ide');
+  mkdirSync(join(cli, '..'), { recursive: true });
+  writeFileSync(cli, '');
+  const [antigravity] = editorCandidates('darwin', {}, home);
+  assert.deepEqual([antigravity.id, antigravity.cli, antigravity.app], ['antigravity', cli, join(home, 'Applications', 'Antigravity IDE.app')]);
+});
+
 test('the extension installer prefers an override, then the carried or development VSIX, before the marketplace', () => {
   const dir = mkdtempSync(join(tmpdir(), 'tudi-vsix-'));
   const resources = join(dir, 'resources');

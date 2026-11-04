@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json.schemastore.org/vsix-publish",
+  "categories": ["coding", "reporting"],
+  "identity": {
+    "internalName": "commit-kingdom-tracker"
+  },
+  "overview": "OVERVIEW.md",
+  "priceCategory": "free",
+  "publisher": "tudidaily",
+  "private": false,
+  "qna": true,
+  "repo": "https://github.com/poyrazavsever/commit-kingdom-tracker"
+}

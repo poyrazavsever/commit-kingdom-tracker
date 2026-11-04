@@ -96,6 +96,17 @@ jobs:
       # The Visual Studio extension (Windows only) is carried inside Desktop, like the VSIX and the JetBrains plugin.
       - if: runner.os == 'Windows'
         run: npm run build:visualstudio
+      # The same Marketplace publisher (tudidaily) and token as the VS Code extension; skipped until the token exists.
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if (-not $env:VSCE_PAT) { 'No VSCE_PAT, the Visual Studio extension is not published'; exit 0 }
+          $publisher = Get-ChildItem "$env:USERPROFILE/.nuget/packages/microsoft.vssdk.buildtools" -Recurse -Filter VsixPublisher.exe | Select-Object -First 1
+          & $publisher.FullName publish -payload ../visualstudio/bin/Release/CommitKingdom.VisualStudio.vsix -publishManifest ../visualstudio/publishManifest.json -personalAccessToken $env:VSCE_PAT
+          # A release that did not change the extension carries the same version, which the Marketplace refuses.
+          if ($LASTEXITCODE -ne 0) { 'The Visual Studio Marketplace did not take it (same version?); the release goes on'; exit 0 }
       - run: npm test
       # The Developer ID certificate goes into a keychain made here: electron-builder's own temporary keychain could not
       # be unlocked on the macOS 15 runner ("passphrase not correct", desktop-v0.1.2). CSC_NAME then picks the identity.
@@ -181,4 +192,4 @@ jobs:
       - name: Publish to Open VSX (when the token exists)
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: if [ -n "$OVSX_PAT" ]; then npx --yes ovsx@0.10.6 publish tudi-tracker.vsix -p "$OVSX_PAT"; else echo "No OVSX_PAT, skipped"; fi
+        run: if [ -n "$OVSX_PAT" ]; then npx --yes ovsx@0.10.6 create-namespace tudidaily -p "$OVSX_PAT" || true; npx --yes ovsx@0.10.6 publish tudi-tracker.vsix -p "$OVSX_PAT"; else echo "No OVSX_PAT, skipped"; fi
