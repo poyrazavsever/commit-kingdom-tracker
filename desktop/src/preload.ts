@@ -10,5 +10,6 @@ contextBridge.exposeInMainWorld('tudi', {
   openApp: () => ipcRenderer.invoke('open-app'),
   installExtension: (id: string) => ipcRenderer.invoke('install-extension', id),
   installAll: () => ipcRenderer.invoke('install-all'),
+  openLink: (target: string) => ipcRenderer.invoke('open-link', target),
   onState: (listener: (state: unknown) => void) => ipcRenderer.on('state', (_event, state) => listener(state)),
 });

@@ -19,6 +19,9 @@ export type Summary = {
   lastHeartbeatAt: string | null;
 };
 
+/** Whether the member has Kingdom Plus (`GET /api/tracker/desktop/plus`); Desktop never sells it. */
+export type DesktopPlus = { active: boolean; expiresAt: string | null; renews: boolean };
+
 /** The key was removed (from the app's Code Tower, or the account is gone): Tudi Desktop asks to sign in again. */
 export class KeyRevoked extends Error {
   constructor() {
@@ -35,6 +38,10 @@ export class DesktopApi {
 
   async summary(): Promise<Summary> {
     return (await this.send('GET', '/summary')).json() as Promise<Summary>;
+  }
+
+  async plus(): Promise<DesktopPlus> {
+    return (await this.send('GET', '/plus')).json() as Promise<DesktopPlus>;
   }
 
   async rename(name: string): Promise<void> {

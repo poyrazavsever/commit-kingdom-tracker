@@ -24,9 +24,11 @@ Editor extensions call `tudi-cli` the same way WakaTime plugins call `wakatime-c
 1. Install Commit Kingdom Desktop and click **Sign in**. Your browser opens Commit Kingdom; approve this computer there.
 2. Commit Kingdom Desktop gets a device key for this computer. It keeps the key encrypted with your operating system's key store and writes it to `~/.tudi.cfg` for `tudi-cli` (set `TUDI_HOME` to use another folder).
 
-The key can only write coding activity. Signing out of Commit Kingdom Desktop, or removing the computer in the app's Code Tower, turns it off.
+The key can write coding activity and read back your own totals for Commit Kingdom Desktop (today, the week report, whether you have Kingdom Plus); it cannot change your account, your kingdom or anything else. Signing out of Commit Kingdom Desktop, or removing the computer in the app's Code Tower, turns it off.
 
 3. Commit Kingdom Desktop carries `tudi-cli` and puts it in `~/.tudi`; each Commit Kingdom Desktop update brings the matching `tudi-cli`. It finds the VS Code family editors on the computer by their install folders and installs the Commit Kingdom Tracker extension in each with one click. The extension never asks you to sign in: it uses the key Commit Kingdom Desktop wrote and sends nothing until there is one. The JetBrains plugin works the same way.
+
+4. AI coding agents need nothing installed. Commit Kingdom Desktop runs `tudi-cli --sync-ai-activity` every two minutes, so work with Claude Code, Codex, Gemini CLI, Antigravity's agent and the other tools `tudi-cli` reads counts even without an editor open. It counts as AI-assisted.
 
 ## What changed from wakatime-cli
 

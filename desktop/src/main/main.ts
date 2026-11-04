@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, powerMonitor, shell, Tray } from 'electron';
 import { type AiTool, findAiTools } from './aiTools';
-import { DesktopApi, KeyRevoked, type Summary } from './api';
+import { DesktopApi, type DesktopPlus, KeyRevoked, type Summary } from './api';
 import { clearCliKey, cliKey, cliPaths, machineId, markAiStart, writeCliKey } from './cliConfig';
 import { bundledCli, ensureCli } from './cliInstall';
 import { apiUrl, appUrl, DEFAULT_API_URL, heartbeatApiUrl } from './config';
@@ -26,6 +26,8 @@ type View = {
   editors: { id: string; name: string; icon: string | null; hasExtension: boolean; installing: boolean; restart: boolean }[] | null;
   /** AI coding tools with logs on this computer; their work counts without an editor (queue.ts → syncAi). */
   aiTools: AiTool[];
+  /** Whether the member has Kingdom Plus (the Kingdom Plus page). */
+  plus: DesktopPlus | null;
   error: 'signIn' | 'offline' | 'keyStore' | 'rename' | 'install' | 'cli' | null;
   /** Increments even when the same error happens twice, so every event gets its own toast. */
   errorId: number;
@@ -42,7 +44,7 @@ let refreshTimer: NodeJS.Timeout | null = null;
 let quitting = false;
 /** A downloaded update waiting for a restart. */
 let updateReady: string | null = null;
-const view: View = { phase: 'signedOut', locale: 'en', deviceName: '', summary: null, editors: null, aiTools: [], error: null, errorId: 0 };
+const view: View = { phase: 'signedOut', locale: 'en', deviceName: '', summary: null, editors: null, aiTools: [], plus: null, error: null, errorId: 0 };
 /** Editors are looked for again when the window comes back, at most this often (each look starts every editor's CLI). */
 const EDITORS_EVERY_MS = 2 * 60_000;
 let editorsAt = 0;
@@ -101,6 +103,10 @@ function registerIpc(): void {
   ipcMain.handle('open-app', () => shell.openExternal(appUrl));
   ipcMain.handle('install-extension', (_event, id: unknown) => installInto(id));
   ipcMain.handle('install-all', () => installAll());
+  ipcMain.handle('open-link', (_event, target: unknown) => {
+    const url = typeof target === 'string' ? links[target] : undefined;
+    if (url) void shell.openExternal(url);
+  });
 }
 
 async function startSignIn(): Promise<void> {
@@ -202,6 +208,13 @@ async function installInto(id: unknown, refreshAfter = true): Promise<void> {
   if (refreshAfter) await refreshEditors(true);
 }
 
+/** The only page the window opens besides the app: the site's Kingdom Plus page in the member's language. */
+const links: Record<string, string> = {
+  get plus() {
+    return `https://commitkingdom.com${view.locale === 'en' ? '/en' : ''}/plus`;
+  },
+};
+
 async function refresh(): Promise<void> {
   if (refreshTimer) clearTimeout(refreshTimer);
   if (!device) return;
@@ -218,7 +231,10 @@ async function refresh(): Promise<void> {
       device = { ...device, name: summary.deviceName };
       saveDevice(device);
     }
-    set({ summary, deviceName: summary.deviceName, error: view.error === 'offline' ? null : view.error });
+    const api = new DesktopApi(apiUrl, device.apiKey);
+    // Plus is an extra: if it fails (an older API, a hiccup) the window keeps what it had.
+    const plus = await api.plus().catch(error => (error instanceof KeyRevoked ? Promise.reject(error) : view.plus));
+    set({ summary, plus, deviceName: summary.deviceName, error: view.error === 'offline' ? null : view.error });
   } catch (error) {
     if (error instanceof KeyRevoked) return forgetLocally();
     if (view.error !== 'offline') fail('offline');
@@ -255,7 +271,7 @@ function forgetLocally(): void {
   device = null;
   forgetDevice();
   clearCliKey(paths);
-  set({ phase: 'signedOut', deviceName: '', summary: null, error: null });
+  set({ phase: 'signedOut', deviceName: '', summary: null, plus: null, error: null });
 }
 
 /** tudi-cli defaults to the production API; only a development API is written to its config. */
@@ -277,8 +293,8 @@ function showWindow(): void {
   if (!window) {
     window = new BrowserWindow({
       // The content area itself (useContentSize): the frame and title bar never eat into it, so nothing scrolls.
-      width: 820,
-      height: 540,
+      width: 980,
+      height: 640,
       useContentSize: true,
       resizable: false,
       maximizable: false,

@@ -271,6 +271,151 @@ h2 { margin: 0; font: 800 17px/22px 'Nunito', sans-serif; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
-/* AI agents: read-only, under the editors; nothing to install */
-.ai-tools { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 2px solid var(--disabled); }
-.ai-label { font: 700 13px/18px 'Nunito', sans-serif; color: var(--ink-muted); }
+/*
+ * Desktop v2 (2026-11-04): the app's wide shell in a window. A white side menu with the wordmark and the page
+ * stickers (the selected page on aqua), a white header with the page title, and the paper pattern behind the cards,
+ * as in the app's Reports on a wide screen. Cards carry their sticker on the top-left corner.
+ */
+main.signedIn { padding: 0; }
+.shell { display: grid; grid-template-columns: 216px 1fr; height: 100vh; }
+.side { display: flex; flex-direction: column; gap: 6px; padding: 20px 14px 18px; background: var(--surface); border-right: 2px solid var(--border); }
+.wordmark { width: 168px; margin: 0 0 14px 8px; }
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--ink-muted);
+  font: 700 16px/20px 'Nunito', sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+.nav-item img { width: 34px; height: 34px; object-fit: contain; }
+.nav-item:hover { background: var(--canvas); }
+.nav-item.active { background: var(--aqua-soft); color: var(--ink); }
+.nav-item.alert::after { content: ''; position: absolute; right: 12px; width: 10px; height: 10px; border-radius: 50%; background: var(--coral-deep); }
+.nav-item:focus-visible, .icon-button:focus-visible, .step:focus-visible { outline: 3px solid var(--aqua); outline-offset: 2px; }
+.device-box { display: flex; flex-direction: column; gap: 6px; padding: 0 2px 4px; }
+.device-box .label { color: var(--ink-muted); font-size: 13px; line-height: 18px; }
+.device-box .field { height: 40px; font-size: 15px; }
+.icon-button { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border: 2px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; }
+.icon-button img { width: 24px; height: 24px; }
+.side .button { width: 100%; }
+
+.page { display: flex; flex-direction: column; min-width: 0; height: 100vh; }
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 68px; padding: 6px 24px 0; background: var(--surface); border-bottom: 4px solid var(--border); }
+.page-head h1 { font: 800 22px/28px 'Baloo 2', sans-serif; }
+.page-head .button { margin-bottom: 0; min-height: 40px; }
+.page-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 26px 24px 24px;
+  background: var(--canvas) url('art/pattern-paper@2x.png') repeat;
+  background-size: 104px 104px;
+}
+.page-body::-webkit-scrollbar { width: 10px; }
+.page-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; border: 2px solid var(--canvas); }
+.grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 18px; align-items: start; }
+.col { min-height: auto; }
+.stack { display: flex; flex-direction: column; gap: 18px; }
+.fresh .page-body .card, .fresh .page-body .nudge, .fresh .page-body .plus-card, .fresh .page-body .perk, .fresh .page-body .stat { animation: appear 320ms ease-out both; }
+
+.card.stickered, .card.locked { position: relative; padding-top: 18px; }
+.card.stickered .card-head, .card.locked .card-head { padding-left: 40px; min-height: 32px; }
+.card-art { position: absolute; left: -10px; top: -14px; width: 50px; height: 50px; object-fit: contain; }
+.big { font: 800 34px/40px 'Baloo 2', sans-serif; }
+
+.split-track { display: flex; height: 18px; padding: 2px; gap: 2px; background: #e3ecee; border: 2px solid #d3dfe3; border-radius: 999px; overflow: hidden; }
+.split-human, .split-ai { height: 100%; border-radius: 999px; background-size: 25.46px 100%; }
+.split-human { background: var(--aqua) repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.38) 0 9px, transparent 9px 18px); }
+.split-ai { background: #9e79e6 repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.32) 0 9px, transparent 9px 18px); }
+.split-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.legend { display: flex; align-items: center; gap: 8px; }
+.legend img { width: 38px; height: 38px; object-fit: contain; }
+.legend small { display: block; font: 600 13px/16px 'Nunito', sans-serif; color: var(--ink-muted); }
+.legend strong { font: 800 17px/22px 'Nunito', sans-serif; }
+
+.card .week { height: 150px; flex: none; }
+.day .pill { flex: 1; width: 22px; display: flex; align-items: flex-end; padding: 3px; border: 2px solid var(--border); border-radius: 999px; background: var(--disabled); }
+.day .pill .bar { width: 100%; max-height: none; min-height: 0; border-radius: 999px; background: var(--aqua) repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.38) 0 9px, transparent 9px 18px); background-size: 25.46px 100%; box-shadow: inset 0 -3px 0 rgba(23, 106, 112, 0.28); }
+.day.today .pill .bar { background-color: var(--aqua-deep); }
+.day.empty .pill { background: transparent; border-style: dashed; }
+
+.share-row { display: flex; align-items: center; gap: 10px; min-height: 40px; border-top: 2px solid var(--disabled); }
+.card-head + .share-row { border-top: 0; }
+.row-icon { width: 26px; height: 26px; flex: none; object-fit: contain; border-radius: 6px; }
+.row-icon.letter { display: grid; place-items: center; background: var(--sky-soft); color: var(--sky-deep); font: 800 14px/1 'Nunito', sans-serif; }
+.share-name { flex: 1; font: 700 15px/20px 'Nunito', sans-serif; }
+.share-value { font: 800 15px/20px 'Nunito', sans-serif; }
+
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.toolbar .button { margin-bottom: 0; }
+.stepper { display: flex; align-items: center; height: 44px; border: 2px solid var(--border); border-radius: 14px; background: var(--surface); overflow: hidden; }
+.stepper span { min-width: 170px; text-align: center; font: 800 15px/20px 'Nunito', sans-serif; }
+.step { width: 44px; height: 100%; border: 0; background: transparent; color: var(--aqua-deep); font: 800 26px/1 'Baloo 2', sans-serif; cursor: pointer; }
+.step:first-child { border-right: 2px solid var(--disabled); }
+.step:last-child { border-left: 2px solid var(--disabled); }
+.step:disabled { color: var(--border); cursor: default; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stat { display: flex; align-items: center; gap: 8px; padding: 12px; background: var(--surface); border: 2px solid var(--border); border-radius: 16px; box-shadow: 0 var(--rail) 0 var(--border); }
+.stat img { width: 32px; height: 32px; object-fit: contain; }
+.stat small { display: block; font: 600 12px/16px 'Nunito', sans-serif; color: var(--ink-muted); }
+.stat strong { font: 800 16px/20px 'Nunito', sans-serif; }
+.ghost-rows { display: flex; flex-direction: column; gap: 10px; }
+.ghost-rows i { height: 26px; border-radius: 10px; background: var(--disabled); }
+.ghost-rows i:nth-child(2) { width: 78%; }
+.ghost-rows i:nth-child(3) { width: 56%; }
+
+.nudge { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--coral-soft); border: 2px solid var(--coral-deep); border-radius: 18px; }
+.nudge img { width: 52px; height: 40px; object-fit: contain; }
+.nudge strong { flex: 1; font: 800 15px/20px 'Nunito', sans-serif; }
+.nudge .button { margin-bottom: var(--rail); }
+.note { display: flex; gap: 10px; align-items: flex-start; margin: 4px 0 0; padding: 10px 12px; background: var(--canvas); border-radius: 14px; font: 600 14px/20px 'Nunito', sans-serif; color: var(--ink-muted); }
+.note img { width: 30px; height: 30px; flex: none; object-fit: contain; }
+
+/* Kingdom Plus: the app's shared gold card (Ekran Briefleri/Raporlar, 2026-10-27) */
+.plus-card { position: relative; margin-top: 14px; padding: 26px 12px 12px; background: #f9dc8e; border: 3px solid #c9962b; border-radius: 22px; box-shadow: 0 var(--rail) 0 #c9962b; }
+.plus-ribbon { position: absolute; left: 50%; top: -18px; transform: translateX(-50%); padding: 4px 20px; background: var(--sand); border: 3px solid #c9962b; border-radius: 14px; font: 800 18px/24px 'Baloo 2', sans-serif; white-space: nowrap; }
+.plus-face { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 16px; text-align: center; background: #fff4d6; border-radius: 16px; }
+.plus-face h3 { margin: 0; font: 800 21px/26px 'Baloo 2', sans-serif; color: var(--aqua-deep); }
+.plus-face p { margin: 0; font: 600 14px/20px 'Nunito', sans-serif; color: var(--ink-muted); }
+.button.go { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 6px; background: #7fd36f; border-color: #34753e; box-shadow: 0 var(--rail) 0 #34753e; }
+.button.go:active { box-shadow: 0 0 0 #34753e; }
+.button.go img { width: 26px; height: 26px; }
+.perks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.perk { display: flex; gap: 12px; align-items: flex-start; padding: 14px; background: var(--surface); border: 2px solid var(--border); border-radius: 18px; box-shadow: 0 var(--rail) 0 var(--border); }
+.perk img { width: 48px; height: 48px; flex: none; object-fit: contain; }
+.perk strong { font: 800 16px/20px 'Nunito', sans-serif; }
+.perk p { margin: 2px 0 0; font: 600 14px/19px 'Nunito', sans-serif; color: var(--ink-muted); }
+.center { text-align: center; }
+.nav-item { padding-right: 30px; }
+.card.stickered .card-head, .card.locked .card-head { padding-left: 34px; }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 0; }
+.empty img { width: 220px; }
+/* Founder revision (2026-11-04): no page scrolls; the Plus card wears the Kingdom Plus logo; perks in three columns. */
+.page-body { overflow: hidden; }
+.plus-card { margin-top: 34px; padding-top: 40px; }
+.plus-logo { position: absolute; left: 50%; top: -38px; transform: translateX(-50%); height: 72px; width: auto; }
+.perks { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.perk { flex-direction: column; gap: 8px; padding: 12px 14px; }
+.perk img { width: 40px; height: 40px; }
+.perk strong { font-size: 15px; }
+.perk p { font-size: 13px; line-height: 18px; }
+.editor { min-height: 48px; }
+.card .day { display: grid; grid-template-rows: 16px 1fr 18px; justify-items: center; gap: 6px; }
+.card .day .pill { height: 100%; }
+.plus-face { padding: 10px 14px; gap: 4px; }
+.perk { display: grid; grid-template-columns: 36px 1fr; column-gap: 10px; align-items: start; padding: 12px; }
+.perk img { width: 36px; height: 36px; }
+.plus-note { margin-top: -4px; }
+.card .day { grid-template-rows: 16px 100px 18px; align-content: end; }
+.plus-card { margin-top: 28px; padding-top: 32px; }
+.plus-logo { top: -34px; height: 62px; }
+.page-body { padding-top: 20px; padding-bottom: 16px; }
+.perk p { margin-top: 0; }
