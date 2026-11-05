@@ -10,8 +10,9 @@
 #
 # Editor extensions: the JetBrains plugin is built once and carried inside Desktop (as the VSIX is), and both are
 # attached to the release for installing by hand. Each marketplace is published to only when its token exists:
-# the VS Code extension through the Visual Studio Marketplace's Trusted Publishing (no secret, publisher CommitKingdom),
-# OVSX_PAT (Open VSX), JETBRAINS_MARKETPLACE_TOKEN; VSCE_PAT only for the Visual Studio extension's VsixPublisher.
+# the VS Code extension through the Trusted Publishing of the Visual Studio Marketplace (publisher CommitKingdom) and of
+# Open VSX (namespace commitkingdom), so neither needs a secret; JETBRAINS_MARKETPLACE_TOKEN; VSCE_PAT only for the
+# Visual Studio extension's VsixPublisher.
 name: Commit Kingdom Desktop release
 
 on:
@@ -195,7 +196,7 @@ jobs:
       # release goes on, and the log says why.
       - name: Publish to Visual Studio Marketplace (Trusted Publishing)
         run: npx --yes @vscode/vsce@4.1.0 publish --oidc --packagePath tudi-tracker.vsix || echo "::warning::Visual Studio Marketplace did not take tudi-tracker.vsix (same version, or no Trusted Publishing policy yet)"
-      - name: Publish to Open VSX (when the token exists)
-        env:
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: if [ -n "$OVSX_PAT" ]; then npx --yes ovsx@0.10.6 create-namespace commitkingdom -p "$OVSX_PAT" || true; npx --yes ovsx@0.10.6 publish tudi-tracker.vsix -p "$OVSX_PAT"; else echo "No OVSX_PAT, skipped"; fi
+      # Open VSX's Trusted Publishing (policy on the commitkingdom namespace: this repository, desktop-release.yml)
+      # exchanges the same OIDC token for a short-lived publishing token; no OVSX_PAT is stored.
+      - name: Publish to Open VSX (Trusted Publishing)
+        run: npx --yes ovsx@1.3.0 publish tudi-tracker.vsix --trusted-publishing || echo "::warning::Open VSX did not take tudi-tracker.vsix (same version, or no Trusted Publishing policy yet)"
