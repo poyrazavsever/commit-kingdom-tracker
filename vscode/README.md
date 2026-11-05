@@ -1,5 +1,7 @@
 # Commit Kingdom Tracker
 
+![Commit Kingdom Desktop sets up every editor and counts AI agents too](https://raw.githubusercontent.com/poyrazavsever/commit-kingdom-tracker/main/docs/media/tracker-demo.gif)
+
 Counts your coding for [Commit Kingdom](https://commitkingdom.com), the strategy game where your commits build your kingdom. Every verified minute becomes energy for your kingdom: train troops, raid other towers, open chests.
 
 Works in VS Code, Cursor, Windsurf, VSCodium and Antigravity.
@@ -9,6 +11,8 @@ Works in VS Code, Cursor, Windsurf, VSCodium and Antigravity.
 1. Install [Commit Kingdom Desktop](https://commitkingdom.com/tracker) and sign in with your Commit Kingdom account.
 2. Commit Kingdom Desktop installs this extension in every editor it finds, with one click. You never sign in inside the editor.
 3. Code. Today's total shows in the status bar.
+
+![Your code never leaves your computer](https://raw.githubusercontent.com/poyrazavsever/commit-kingdom-tracker/main/docs/media/04-privacy-1920x1080.png)
 
 ## What is sent
 

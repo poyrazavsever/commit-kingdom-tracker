@@ -1,5 +1,7 @@
 # Commit Kingdom Tracker
 
+![Commit Kingdom Desktop sets up every editor and counts AI agents too](docs/media/tracker-demo.gif)
+
 The open-source coding tracker behind [Commit Kingdom](https://commitkingdom.com), the strategy game where your commits build your kingdom.
 
 > Formerly Tudi Tracker. For compatibility with existing installs, the CLI keeps the name `tudi-cli`, its files stay in `~/.tudi` and `~/.tudi.cfg`, `TUDI_HOME` still selects another folder, and the JetBrains plugin and app ids, setting keys and command ids are unchanged. The VS Code extension went to the stores under its own name, `commitkingdom.commit-kingdom-tracker` (Commit Kingdom Desktop 0.2.1 replaces the earlier `tudidaily.tudi-tracker` in every editor). The desktop installers keep their `TudiDesktop-*` file names so existing download links keep working.
@@ -7,6 +9,11 @@ The open-source coding tracker behind [Commit Kingdom](https://commitkingdom.com
 Commit Kingdom Tracker counts **when** you code, **in which language**, **how many lines changed** and **how many of them an AI tool wrote**. That is all that leaves your computer. File names, file paths, branches, dependencies and your real project names never do; a project is sent only as a salted one-way hash that is different on every computer.
 
 This repository is open so you can check exactly what is sent.
+
+| | |
+|---|---|
+| ![One sign-in, one click sets up every editor](docs/media/02-one-click-1920x1080.png) | ![Works where you code, AI agents included](docs/media/03-editors-and-ai-1920x1080.png) |
+| ![Your code never leaves your computer](docs/media/04-privacy-1920x1080.png) | ![Every verified minute becomes energy](docs/media/05-energy-1920x1080.png) |
 
 ## What is here
 
